@@ -21,6 +21,11 @@ lib/
   screens/map_screen.dart       첫 화면: 스테이지 지도 (6개 지역, 구불구불한 길, 별, 무한 모드 버튼)
   screens/game_screen.dart      게임 화면 (무한/스테이지 공용: 목표 HUD, 망치, 결과 화면, 메뉴)
   widgets/dialogs.dart          설정·언어·게임 방법 대화상자, 진화표
+  widgets/share_sheet.dart      자랑하기 (점수 카드 미리보기 + 공유 창)
+  game/share_card.dart          점수 카드 이미지 1080x1350 (코드로 그림)
+  services/challenge.dart       도전장 (웹 링크 / 앱 링크 / 스토어 설치 정보 파싱)
+  screens/challenge_screen.dart 친구 도전장 화면
+docs/                         GitHub Pages: index.html, c/index.html(도전 링크 페이지), og.png(미리보기 이미지)
   widgets/banner_ad_widget.dart 하단 배너 (태블릿 대응 버전)
 test/world_test.dart            물리·합치기·게임 오버·이어하기·저장 테스트
 test/preview_render_test.dart   과일/판 미리보기 PNG → build/previews/
@@ -56,6 +61,16 @@ tool/icon_test.dart             앱 아이콘 원본 (flutter test tool/icon_tes
 과일이 빨간 점선 위에 2.5초 넘게 있으면 게임 오버 (막 떨어진 과일 1.2초는 제외).
 합쳐지면 주변 과일이 바깥·위쪽으로 살짝 튕긴다 (`World.bumpSpeed`, `bumpRange`). 마찰은 낮게 (`_floorFriction`, `_contactFriction`).
 소리: 128BPM C장조 배경음악 30초 반복, 합치기 효과음은 과일 단계마다 음이 올라간다. 메뉴에서 배경음악/효과음/진동 각각 끄기.
+
+## 자랑하기 · 친구 도전
+- 게임 오버 / 스테이지 클리어 / 지도(최고 점수)에서 "자랑하기" → 점수 카드 + 링크를 안드로이드 공유 창으로 (카카오톡·인스타·문자 등 어디든, SDK 없음)
+- 링크 `https://junshiva5732.github.io/fruit_merge/c/?s=점수&st=스테이지&r=별` → 페이지(docs/c)가
+  안드로이드에서 `intent://fm/challenge?…` 로 앱을 열고, 앱이 없으면 플레이 스토어(`&referrer=` 에 도전장)로
+- 앱: `fruitmerge://fm/challenge?…` (매니페스트 intent-filter) → 첫 화면(지도) 위에 도전장 화면 → 친구 점수를 목표로 새 판
+  (도전 판은 저장 안 함, 이어하던 무한 모드 보존). 넘으면 "친구 기록 돌파!", 결과에 이겼다/N점 모자라요
+- 스토어로 설치한 경우: 첫 실행에 Play 설치 정보(play_install_referrer)에서 도전장을 한 번 읽는다
+- 인스타그램 게시물 링크는 눌리지 않음(인스타 정책) → 이미지 자랑 위주, 링크는 DM/스토리 스티커
+- 스토어에 공개되기 전에는 "설치 화면"이 열리지 않는다 (앱이 있는 경우의 흐름은 지금도 동작)
 
 ## 광고
 

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>과일 합치기 — 도전장이 도착했어요!</title>
+<!-- 채팅 앱 미리보기 카드 (카카오톡 등은 이 태그를 읽는다. 점수는 메시지 본문에 있다) -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="과일 합치기 — 도전장이 도착했어요! 🍉">
+<meta property="og:description" content="친구의 기록을 이겨 보세요! 같은 과일을 합쳐 수박까지 키우는 물리 퍼즐">
+<meta property="og:image" content="https://junshiva5732.github.io/fruit_merge/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://junshiva5732.github.io/fruit_merge/c/">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+  :root { --brown:#5D4037; --orange:#FF7043; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+         font-family: system-ui, -apple-system, "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+         background: linear-gradient(#FFE0B2, #FF8A65); color: var(--brown); padding:16px; }
+  .card { width:100%; max-width:380px; background:#FFF8E1; border:4px solid #A1887F; border-radius:28px;
+          padding:28px 22px; text-align:center; box-shadow:0 8px 24px rgba(0,0,0,.18); }
+  .fruit { font-size:84px; line-height:1; }
+  h1 { font-size:24px; margin:10px 0 4px; }
+  .label { font-weight:800; margin-top:14px; }
+  .score { font-size:56px; font-weight:900; color:#fff; margin:2px 0;
+           -webkit-text-stroke: 3px var(--brown); paint-order: stroke fill; }
+  .stars { font-size:34px; color:#FFB300; letter-spacing:4px; }
+  .btn { display:block; margin-top:20px; padding:16px; border-radius:18px; background:#43A047; color:#fff;
+         font-size:20px; font-weight:900; text-decoration:none; }
+  .hint { font-size:13px; margin-top:10px; opacity:.8; }
+  .store { display:inline-block; margin-top:14px; color:var(--orange); font-weight:800; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="fruit">🍉</div>
+  <h1 id="title">도전장이 도착했어요!</h1>
+  <div class="label" id="label">친구 기록</div>
+  <div class="score" id="score">-</div>
+  <div class="stars" id="stars"></div>
+  <a class="btn" id="open" href="#">나도 도전하기</a>
+  <div class="hint" id="hint">앱이 없으면 설치 화면으로 이동해요</div>
+  <a class="store" id="store" href="#">Google Play</a>
+</div>
+<script>
+(function () {
+  var PKG = 'com.jun5731.fruit_merge';
+  var q = new URLSearchParams(location.search);
+  var s = parseInt(q.get('s'), 10);
+  var st = parseInt(q.get('st'), 10);
+  var r = parseInt(q.get('r'), 10);
+  var params = new URLSearchParams();
+  if (s >= 0) params.set('s', s);
+  if (st >= 1 && st <= 60) params.set('st', st);
+  if (r >= 1 && r <= 3) params.set('r', r);
+  var p = params.toString();
+
+  // 언어: 한국어 / 일본어 / 중국어 / 영어
+  var lang = (navigator.language || 'en').slice(0, 2);
+  var T = {
+    ko: ['도전장이 도착했어요!', '친구 기록', '스테이지 ', '나도 도전하기', '앱이 없으면 설치 화면으로 이동해요', '안드로이드 휴대폰에서 열어 주세요'],
+    ja: ['挑戦状が届いた！', '友だちの記録', 'ステージ ', '挑戦する', 'アプリがなければインストール画面へ移動します', 'Androidスマホで開いてください'],
+    zh: ['收到挑战书啦！', '好友记录', '第 ', '接受挑战', '未安装应用时将前往安装页面', '请在 Android 手机上打开'],
+    en: ['A challenge has arrived!', "Friend's score", 'Stage ', 'Accept challenge', "If you don't have the app, you'll go to the install page", 'Please open this on an Android phone']
+  }[lang] || null;
+  var t = T || { 0: 'A challenge has arrived!', 1: "Friend's score", 2: 'Stage ', 3: 'Accept challenge', 4: "If you don't have the app, you'll go to the install page", 5: 'Please open this on an Android phone' };
+  if (lang !== 'ko') document.documentElement.lang = lang;
+  document.getElementById('title').textContent = t[0];
+  document.getElementById('label').textContent = (st ? t[2] + st + (lang === 'zh' ? ' 关 · ' : ' · ') : '') + t[1];
+  document.getElementById('score').textContent = isNaN(s) ? '-' : s.toLocaleString();
+  document.getElementById('stars').textContent = r > 0 ? '★'.repeat(r) + '☆'.repeat(3 - r) : '';
+  document.getElementById('open').textContent = t[3];
+
+  // 스토어: 설치 정보(referrer)에 도전장을 실어 설치 후 첫 실행에도 이어지게
+  var store = 'https://play.google.com/store/apps/details?id=' + PKG + '&referrer=' + encodeURIComponent(p);
+  document.getElementById('store').href = store;
+
+  var android = /android/i.test(navigator.userAgent);
+  if (android) {
+    // 앱이 있으면 앱으로, 없으면 fallback(스토어)으로
+    var intent = 'intent://fm/challenge?' + p + '#Intent;scheme=fruitmerge;package=' + PKG +
+                 ';S.browser_fallback_url=' + encodeURIComponent(store) + ';end';
+    var btn = document.getElementById('open');
+    btn.href = intent;
+    document.getElementById('hint').textContent = t[4];
+    setTimeout(function () { location.href = intent; }, 400);
+  } else {
+    document.getElementById('open').href = store;
+    document.getElementById('hint').textContent = t[5];
+  }
+})();
+</script>
+</body>
+</html>

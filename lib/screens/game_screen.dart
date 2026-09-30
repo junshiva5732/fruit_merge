@@ -10,11 +10,13 @@ import '../game/board_painter.dart';
 import '../game/stages.dart';
 import '../game/world.dart';
 import '../l10n/strings.dart';
+import '../services/challenge.dart';
 import '../services/sound.dart';
 import '../services/storage.dart';
 import '../widgets/banner_ad_widget.dart';
 import '../widgets/dialogs.dart';
 import '../widgets/outlined_text.dart';
+import '../widgets/share_sheet.dart';
 
 /// 스크린샷용: 과일이 쌓인 판으로 시작 (디버그 빌드에서만).
 const _demo = bool.fromEnvironment('DEMO');
@@ -30,7 +32,10 @@ enum _Panel { none, gameOver, clear, failOverflow, failDrops }
 class GameScreen extends StatefulWidget {
   final Storage storage;
   final Stage? stage;
-  const GameScreen({super.key, required this.storage, this.stage});
+
+  /// 친구 도전장으로 시작했으면 친구 점수 (이기면 축하, 결과에 비교 표시).
+  final int? friendScore;
+  const GameScreen({super.key, required this.storage, this.stage, this.friendScore});
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -61,6 +66,10 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
 
   Storage get _storage => widget.storage;
   Stage? get _stage => widget.stage;
+  int? get _friend => widget.friendScore;
+
+  /// 친구 점수를 넘었는지 (한 번만 축하).
+  bool _beatFriend = false;
 
   @override
   void initState() {
@@ -80,6 +89,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     final st = _stage;
     if (st != null) return st.createWorld();
     if (kDebugMode && _demo) return _demoWorld();
+    if (_friend != null) return World(); // 도전은 새 판으로
     final saved = _storage.savedGame;
     return (saved == null ? null : World.fromJson(saved)) ?? World();
   }
@@ -144,9 +154,9 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     Sound.instance.unsuspend();
   }
 
-  /// 무한 모드만 진행 중인 판을 저장한다.
+  /// 무한 모드만 진행 중인 판을 저장한다 (친구 도전 판은 저장하지 않아 원래 이어하던 판이 남는다).
   void _save() {
-    if (_demo || _stage != null) return;
+    if (_demo || _stage != null || _friend != null) return;
     _storage.saveGame(_world.over ? null : _world.toJson());
   }
 
@@ -167,12 +177,34 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
       }
       _world.events.clear();
       _maybeExplainSpecial();
+      _checkFriend();
       _checkEnd(dt);
     }
     _fx.step(dt);
     final hud = (_world.score, _world.dropsLeft, _world.stonesBroken, _world.biggest, _world.next);
     if (hud != _hud) setState(() => _hud = hud);
     _repaint.value++;
+  }
+
+  void _checkFriend() {
+    final f = _friend;
+    if (f == null || _beatFriend || _world.score <= f) return;
+    _beatFriend = true;
+    Sound.instance.play('stageclear');
+    _haptic(HapticFeedback.heavyImpact);
+    _fx.popups.add(Popup(const Offset(World.width / 2, World.lineY + 300), S.of(context).beatFriend, big: true));
+  }
+
+  /// 자랑하기: 무한 모드는 점수, 스테이지는 번호 + 별.
+  void _share() {
+    final st = _stage;
+    showShareSheet(
+      context,
+      challenge: st == null
+          ? Challenge(score: _world.score)
+          : Challenge(score: _world.score, stage: st.number, stars: _stars),
+      fruit: _world.biggest,
+    );
   }
 
   void _checkEnd(double dt) {
@@ -557,6 +589,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
                         ? _TopBar(
                             score: _world.score,
                             best: math.max(_storage.best, _world.score),
+                            friend: _friend,
                             next: _world.next,
                             onMenu: _showMenu,
                           )
@@ -632,8 +665,10 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
         newBest: _newBest,
         biggest: _world.biggest,
         canContinue: !_usedContinue,
+        friend: _friend,
         onContinue: _continue,
         onPlayAgain: _playAgain,
+        onShare: _share,
         onMap: _toMap,
       ),
       _Panel.clear => _StageClearPanel(
@@ -641,6 +676,8 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
         stars: _stars,
         score: _world.score,
         hammerBonus: _hammerBonus,
+        friend: _friend,
+        onShare: _share,
         onNext: st.number < Stage.count ? _nextStage : null,
         onRetry: _playAgain,
         onMap: _toMap,
@@ -685,9 +722,10 @@ Widget _nextBox(BuildContext context, int next) {
 class _TopBar extends StatelessWidget {
   final int score;
   final int best;
+  final int? friend;
   final int next;
   final VoidCallback onMenu;
-  const _TopBar({required this.score, required this.best, required this.next, required this.onMenu});
+  const _TopBar({required this.score, required this.best, this.friend, required this.next, required this.onMenu});
 
   @override
   Widget build(BuildContext context) {
@@ -701,7 +739,27 @@ class _TopBar extends StatelessWidget {
             child: Column(
               children: [
                 OutlinedText('$score', size: 38),
-                Text('${s.best} $best', style: const TextStyle(fontWeight: FontWeight.w800, color: brown, fontSize: 14)),
+                if (friend != null)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        score > friend! ? Icons.emoji_events_rounded : Icons.flag_rounded,
+                        size: 16,
+                        color: score > friend! ? const Color(0xFFFFB300) : const Color(0xFFE53935),
+                      ),
+                      Text(
+                        S.of(context).friendTarget(friend!),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 14,
+                          color: score > friend! ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  Text('${s.best} $best', style: const TextStyle(fontWeight: FontWeight.w800, color: brown, fontSize: 14)),
               ],
             ),
           ),
@@ -875,6 +933,46 @@ Widget _hint(String text) => Padding(
   child: Text(text, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: brown)),
 );
 
+/// 자랑하기 (노란 버튼: 카카오톡 느낌).
+Widget _shareButton(String label, VoidCallback onTap) => SizedBox(
+  width: double.infinity,
+  child: FilledButton.icon(
+    style: FilledButton.styleFrom(
+      backgroundColor: const Color(0xFFFEE500),
+      foregroundColor: const Color(0xFF3C1E1E),
+      padding: const EdgeInsets.symmetric(vertical: 12),
+    ),
+    icon: const Icon(Icons.share_rounded),
+    label: Text(label, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+    onPressed: onTap,
+  ),
+);
+
+/// 친구 점수와 비교: 이겼다! / N점 모자라요!
+class _VsFriend extends StatelessWidget {
+  final int score;
+  final int friend;
+  const _VsFriend({required this.score, required this.friend});
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    final win = score > friend;
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        color: win ? const Color(0xFFC8E6C9) : const Color(0xFFFFCDD2),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Text(
+        '${s.friendTarget(friend)} · ${win ? s.vsWin : s.vsLose(friend - score)}',
+        style: TextStyle(fontWeight: FontWeight.w900, color: win ? const Color(0xFF2E7D32) : const Color(0xFFC62828)),
+      ),
+    );
+  }
+}
+
 Widget _mapButton(String label, VoidCallback onTap) => TextButton.icon(
   onPressed: onTap,
   icon: const Icon(Icons.map_rounded, color: brown),
@@ -887,8 +985,10 @@ class _GameOverPanel extends StatelessWidget {
   final bool newBest;
   final int biggest;
   final bool canContinue;
+  final int? friend;
   final VoidCallback onContinue;
   final VoidCallback onPlayAgain;
+  final VoidCallback onShare;
   final VoidCallback onMap;
 
   const _GameOverPanel({
@@ -897,8 +997,10 @@ class _GameOverPanel extends StatelessWidget {
     required this.newBest,
     required this.biggest,
     required this.canContinue,
+    required this.friend,
     required this.onContinue,
     required this.onPlayAgain,
+    required this.onShare,
     required this.onMap,
   });
 
@@ -913,6 +1015,7 @@ class _GameOverPanel extends StatelessWidget {
         OutlinedText('$score', size: 48),
         if (newBest) OutlinedText(s.newBest, size: 22, color: const Color(0xFFFFEB3B), strokeWidth: 5),
         Text('${s.best} $best', style: const TextStyle(fontWeight: FontWeight.w700, color: brown)),
+        if (friend != null) _VsFriend(score: score, friend: friend!),
         const SizedBox(height: 12),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -934,6 +1037,8 @@ class _GameOverPanel extends StatelessWidget {
           _hint(s.continueHint),
         ],
         _bigButton(s.playAgain, Icons.refresh_rounded, const Color(0xFFFF7043), onPlayAgain),
+        const SizedBox(height: 8),
+        _shareButton(s.brag, onShare),
         _mapButton(s.toMap, onMap),
       ],
     );
@@ -945,6 +1050,8 @@ class _StageClearPanel extends StatefulWidget {
   final int stars;
   final int score;
   final bool hammerBonus;
+  final int? friend;
+  final VoidCallback onShare;
   final VoidCallback? onNext;
   final VoidCallback onRetry;
   final VoidCallback onMap;
@@ -954,6 +1061,8 @@ class _StageClearPanel extends StatefulWidget {
     required this.stars,
     required this.score,
     required this.hammerBonus,
+    required this.friend,
+    required this.onShare,
     required this.onNext,
     required this.onRetry,
     required this.onMap,
@@ -1009,6 +1118,7 @@ class _StageClearPanelState extends State<_StageClearPanel> {
         ),
         Text(s.score, style: const TextStyle(fontWeight: FontWeight.w800, color: brown)),
         OutlinedText('${widget.score}', size: 40),
+        if (widget.friend != null) _VsFriend(score: widget.score, friend: widget.friend!),
         if (widget.hammerBonus)
           Padding(
             padding: const EdgeInsets.only(top: 8),
@@ -1027,6 +1137,8 @@ class _StageClearPanelState extends State<_StageClearPanel> {
           const SizedBox(height: 8),
         ],
         _bigButton(s.retry, Icons.refresh_rounded, const Color(0xFFFF7043), widget.onRetry),
+        const SizedBox(height: 8),
+        _shareButton(s.brag, widget.onShare),
         _mapButton(s.toMap, widget.onMap),
       ],
     );

@@ -95,6 +95,51 @@ class S {
   String get hammerReward => _t('Bonus: +1 hammer!', '보너스: 망치 +1!', 'ボーナス：ハンマー+1！', '奖励：锤子 +1！');
   String get locked => _t('Clear the previous stage first', '이전 스테이지를 먼저 깨 주세요', '前のステージをクリアしよう', '请先通过上一关');
   String get settings => _t('Settings', '설정', '設定', '设置');
+
+  // 자랑하기 / 도전장
+  String get brag => _t('Share', '자랑하기', '自慢する', '炫耀一下');
+  String get shareWithImage => _t('Send with score card', '점수 카드와 함께 보내기', 'スコアカード付きで送る', '附上分数卡发送');
+  String get shareLinkOnly => _t('Send link only', '링크만 보내기', 'リンクだけ送る', '只发送链接');
+  String get shareLinkHint => _t(
+    'Chat apps like KakaoTalk show it as a preview card',
+    '카카오톡 같은 채팅 앱에서 미리보기 카드로 보여요',
+    'LINEなどのチャットアプリでプレビューカードになります',
+    '在微信等聊天应用中显示为预览卡片',
+  );
+  String shareTextEndless(int score) => _t(
+    '🍉 I scored $score points in Fruit Merge! Can you beat me? 👉 ',
+    '🍉 과일 합치기에서 $score점! 나를 이길 수 있어? 👉 ',
+    '🍉 フルーツ合体で$score点！私に勝てる？ 👉 ',
+    '🍉 我在水果合合拿了 $score 分！你能超过我吗？👉 ',
+  );
+  String shareTextStage(int stage, int stars) => _t(
+    '🍉 Cleared Stage $stage in Fruit Merge ${'★' * stars}! Your turn 👉 ',
+    '🍉 과일 합치기 스테이지 $stage 클리어 ${'★' * stars}! 너도 도전해 봐 👉 ',
+    '🍉 フルーツ合体 ステージ$stage クリア ${'★' * stars}！次はキミの番 👉 ',
+    '🍉 水果合合第 $stage 关通关 ${'★' * stars}！轮到你了 👉 ',
+  );
+  String get cardEndless => _t('ENDLESS RECORD', '무한 모드 기록', 'エンドレス記録', '无尽模式记录');
+  String cardStage(int n) => _t('STAGE $n CLEAR', '스테이지 $n 클리어', 'ステージ$n クリア', '第 $n 关通关');
+  String get cardCallToAction => _t('Can you beat me?', '나를 이길 수 있어?', '私に勝てる？', '你能超过我吗？');
+  String get challengeTitle => _t('A challenge has arrived!', '도전장이 도착했어요!', '挑戦状が届いた！', '收到挑战书啦！');
+  String get friendScore => _t("Friend's score", '친구 기록', '友だちの記録', '好友记录');
+  String get acceptChallenge => _t('Accept challenge', '도전하기', '挑戦する', '接受挑战');
+  String get challengeNewGame => _t(
+    'A separate game — your saved endless game stays',
+    '따로 한 판 — 이어하던 무한 모드는 그대로 남아요',
+    '別の1ゲーム — 続きのエンドレスはそのまま残ります',
+    '单独一局 — 原来的无尽模式进度会保留',
+  );
+  String challengeStageLocked(int n) => _t(
+    'Stage $n is still locked. Clear the stages before it first!',
+    '스테이지 $n은 아직 잠겨 있어요. 앞 스테이지부터 깨 보세요!',
+    'ステージ$nはまだロック中。前のステージからクリアしよう！',
+    '第 $n 关尚未解锁，先通过前面的关卡吧！',
+  );
+  String friendTarget(int n) => _t('Friend $n', '친구 $n', '友だち $n', '好友 $n');
+  String get beatFriend => _t('You beat your friend!', '친구 기록 돌파!', '友だちの記録を突破！', '超越好友记录！');
+  String get vsWin => _t('You win!', '이겼다!', '勝ち！', '你赢了！');
+  String vsLose(int diff) => _t('Just $diff points short!', '$diff점 모자라요!', 'あと$diff点！', '还差 $diff 分！');
   String get bestStars => _t('Best', '최고 기록', 'ベスト', '最佳');
   String get newHere => _t('NEW', '새로 등장', 'NEW', '新登场');
   String get autoDropHint => _t(

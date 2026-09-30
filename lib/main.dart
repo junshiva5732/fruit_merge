@@ -5,7 +5,9 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'ads/ad_manager.dart';
 import 'l10n/strings.dart';
+import 'screens/challenge_screen.dart';
 import 'screens/map_screen.dart';
+import 'services/challenge.dart';
 import 'services/sound.dart';
 import 'services/storage.dart';
 
@@ -44,6 +46,11 @@ class _FruitMergeAppState extends State<FruitMergeApp> {
     _locale.addListener(() => widget.storage.setLocaleCode(_locale.value?.languageCode));
   }
 
+  Route<void> _mapRoute() => MaterialPageRoute(builder: (_) => MapScreen(storage: widget.storage));
+
+  Route<void> _challengeRoute(Challenge c) =>
+      MaterialPageRoute(builder: (_) => ChallengeScreen(storage: widget.storage, challenge: c));
+
   @override
   void dispose() {
     _locale.dispose();
@@ -64,7 +71,15 @@ class _FruitMergeAppState extends State<FruitMergeApp> {
           supportedLocales: S.supported,
           // 우선순위: 스크린샷용 강제 > 사용자 설정 > 시스템 언어
           locale: kDebugMode && _localeOverride.isNotEmpty ? Locale(_localeOverride) : _locale.value,
-          home: MapScreen(storage: widget.storage),
+          // 첫 화면은 지도. 친구 도전 링크(fruitmerge://fm/challenge?s=…)로 열리면 그 위에 도전장.
+          onGenerateInitialRoutes: (initial) => [
+            _mapRoute(),
+            if (Challenge.fromRoute(initial) case final c?) _challengeRoute(c),
+          ],
+          onGenerateRoute: (settings) {
+            final c = Challenge.fromRoute(settings.name);
+            return c != null ? _challengeRoute(c) : _mapRoute();
+          },
         ),
       ),
     );

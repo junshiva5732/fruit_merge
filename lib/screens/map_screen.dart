@@ -8,11 +8,14 @@ import '../game/fruit_art.dart';
 import '../game/stages.dart';
 import '../game/world.dart';
 import '../l10n/strings.dart';
+import '../services/challenge.dart';
 import '../services/sound.dart';
 import '../services/storage.dart';
 import '../widgets/banner_ad_widget.dart';
 import '../widgets/dialogs.dart';
 import '../widgets/outlined_text.dart';
+import '../widgets/share_sheet.dart';
+import 'challenge_screen.dart';
 import 'game_screen.dart';
 
 /// 지역별 배경색 (아래 → 위): 과수원, 딸기 밭, 열대 해변, 노을 언덕, 별빛 정원, 무지개 성.
@@ -64,6 +67,17 @@ class _MapScreenState extends State<MapScreen> with SingleTickerProviderStateMix
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToCurrent(animate: false));
+    _checkInstallChallenge();
+  }
+
+  /// 친구 도전 링크 → 스토어 → 설치했다면, 첫 실행에 그 도전장을 보여 준다.
+  Future<void> _checkInstallChallenge() async {
+    if (_storage.referrerChecked) return;
+    final c = await Challenge.fromInstallReferrer();
+    await _storage.setReferrerChecked();
+    if (c == null || !mounted) return;
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => ChallengeScreen(storage: _storage, challenge: c)));
+    if (mounted) setState(() {});
   }
 
   @override
@@ -180,6 +194,18 @@ class _MapScreenState extends State<MapScreen> with SingleTickerProviderStateMix
                         ],
                       ),
                     ),
+                    const SizedBox(width: 6),
+                    if (_storage.best > 0)
+                      IconButton.filled(
+                        tooltip: s.brag,
+                        onPressed: () => showShareSheet(
+                          context,
+                          challenge: Challenge(score: _storage.best),
+                          fruit: math.max(_storage.biggestEver, 4),
+                        ),
+                        style: IconButton.styleFrom(backgroundColor: const Color(0xFFFEE500), foregroundColor: const Color(0xFF3C1E1E)),
+                        icon: const Icon(Icons.share_rounded),
+                      ),
                     const SizedBox(width: 6),
                     IconButton.filledTonal(
                       onPressed: () async {

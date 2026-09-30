@@ -15,6 +15,7 @@ class Storage {
   static const _kSeenHelp = 'seen_help';
   static const _kSeenSpecial = 'seen_special_';
   static const _kStars = 'stage_stars';
+  static const _kReferrerChecked = 'referrer_checked';
 
   /// 처음 설치하면 망치 1개를 준다.
   static const startHammers = 1;
@@ -86,6 +87,10 @@ class Storage {
     }
     return n;
   }
+
+  /// 스토어 설치 정보(친구 도전 링크로 설치했는지)를 이미 확인했는지. 처음 한 번만 본다.
+  bool get referrerChecked => _prefs.getBool(_kReferrerChecked) ?? false;
+  Future<void> setReferrerChecked() => _prefs.setBool(_kReferrerChecked, true);
 
   /// 특수 과일(무지개·폭탄·돌) 설명을 이미 봤는지.
   bool seenSpecial(int piece) => _prefs.getBool('$_kSeenSpecial$piece') ?? false;

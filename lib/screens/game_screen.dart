@@ -9,6 +9,7 @@ import '../ads/ad_manager.dart';
 import '../game/board_painter.dart';
 import '../game/world.dart';
 import '../l10n/strings.dart';
+import '../services/sound.dart';
 import '../services/storage.dart';
 import '../widgets/banner_ad_widget.dart';
 import '../widgets/outlined_text.dart';
@@ -103,7 +104,27 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) _save();
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      _save();
+      if (state == AppLifecycleState.paused) Sound.instance.suspend();
+    } else if (state == AppLifecycleState.resumed && !_inAd) {
+      Sound.instance.unsuspend();
+    }
+  }
+
+  /// 전면/보상형 광고를 보여주는 중 (음악을 멈춰 둔다).
+  bool _inAd = false;
+
+  void _adStarted() {
+    _inAd = true;
+    _running = false;
+    Sound.instance.suspend();
+  }
+
+  void _adEnded() {
+    _inAd = false;
+    _running = true;
+    Sound.instance.unsuspend();
   }
 
   void _save() {
@@ -124,7 +145,13 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
       _world.step(dt);
       for (final e in _world.events) {
         _fx.onEvent(e);
-        if (!e.removed) _haptic(e.level >= 7 ? HapticFeedback.mediumImpact : HapticFeedback.lightImpact);
+        if (!e.removed) {
+          Sound.instance.merge(e.level);
+          _haptic(e.level >= 7 ? HapticFeedback.mediumImpact : HapticFeedback.lightImpact);
+        } else if (e.points > 0) {
+          Sound.instance.play('bonus');
+          _haptic(HapticFeedback.heavyImpact);
+        }
       }
       _world.events.clear();
       if (_world.over && !_showOver) _onGameOver();
@@ -150,6 +177,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     if (!_aiming) return;
     _aiming = false;
     if (_world.drop()) {
+      Sound.instance.play('drop');
       _haptic(HapticFeedback.selectionClick);
       _save();
       setState(() {});
@@ -161,6 +189,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     final f = _world.fruitAt(local / scale);
     if (f == null) return;
     _world.smash(f);
+    Sound.instance.play('smash');
     _haptic(HapticFeedback.heavyImpact);
     _storage.setHammers(_storage.hammers - 1);
     setState(() => _hammerMode = false);
@@ -169,6 +198,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
 
   Future<void> _onHammer() async {
     if (_world.over) return;
+    Sound.instance.play('click');
     if (_hammerMode) {
       setState(() => _hammerMode = false);
       return;
@@ -197,19 +227,20 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
       ),
     );
     if (go != true || !mounted) return;
-    _running = false;
+    _adStarted();
     final shown = AdManager.instance.showRewarded(
       onReward: () {
         _storage.setHammers(_storage.hammers + 2);
+        Sound.instance.play('reward');
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s.hammersGot(2))));
       },
       onClosed: () {
-        _running = true;
+        _adEnded();
         if (mounted) setState(() {});
       },
     );
     if (!shown) {
-      _running = true;
+      _adEnded();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s.adNotReady)));
     }
   }
@@ -227,6 +258,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
   // ------------------------------------------------------------ 게임 오버
 
   void _onGameOver() {
+    Sound.instance.play('gameover');
     _haptic(HapticFeedback.heavyImpact);
     _storage.submitBiggest(_world.biggest);
     final isBest = _storage.submitScore(_world.score);
@@ -240,29 +272,31 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
 
   void _continue() {
     final s = S.of(context);
-    _running = false;
+    _adStarted();
     final shown = AdManager.instance.showRewarded(
       onReward: () {
         _world.rescue();
         _usedContinue = true;
         _showOver = false;
+        Sound.instance.play('reward');
       },
       onClosed: () {
-        _running = true;
+        _adEnded();
         if (mounted) setState(() {});
         _save();
       },
     );
     if (!shown) {
-      _running = true;
+      _adEnded();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s.adNotReady)));
     }
   }
 
   void _playAgain() {
-    _running = false;
+    Sound.instance.play('click');
+    _adStarted();
     AdManager.instance.showInterstitialThen(() {
-      _running = true;
+      _adEnded();
       if (!mounted) return;
       _newGame();
     });
@@ -285,6 +319,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
   // ----------------------------------------------------------------- 메뉴
 
   Future<void> _showMenu() async {
+    Sound.instance.play('click');
     final s = S.of(context);
     final action = await _pausedWhile(
       () => showDialog<String>(
@@ -321,6 +356,30 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
                 ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
+                  secondary: const Icon(Icons.music_note_rounded),
+                  title: Text(s.music),
+                  value: _storage.music,
+                  onChanged: (v) {
+                    _storage.setMusic(v);
+                    Sound.instance.setMusic(v);
+                    setLocal(() {});
+                  },
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  secondary: const Icon(Icons.volume_up_rounded),
+                  title: Text(s.soundEffects),
+                  value: _storage.sfx,
+                  onChanged: (v) {
+                    _storage.setSfx(v);
+                    Sound.instance.setSfx(v);
+                    Sound.instance.play('click');
+                    setLocal(() {});
+                  },
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  secondary: const Icon(Icons.vibration_rounded),
                   title: Text(s.vibration),
                   value: _storage.vibration,
                   onChanged: (v) {

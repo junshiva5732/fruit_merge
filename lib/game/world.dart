@@ -58,6 +58,15 @@ class World {
   static const _iterations = 3;
   static const _restitution = 0.15;
 
+  /// 미끄러짐: 바닥 마찰(접촉 서브스텝마다 곱하는 값)과 과일끼리 접선 마찰. 작을수록 잘 미끄러진다.
+  static const _floorFriction = 0.998;
+  static const _contactFriction = 0.01;
+  static const _airDamping = 0.15;
+
+  /// 합쳐질 때 주변 과일을 밀어내는 세기 (월드 단위 속도).
+  static const bumpSpeed = 380.0;
+  static const bumpRange = 70.0;
+
   final math.Random _rng;
   final fruits = <Fruit>[];
   final events = <WorldEvent>[];
@@ -141,7 +150,7 @@ class World {
   }
 
   void _integrate(double h) {
-    final damp = 1 - 0.4 * h;
+    final damp = 1 - _airDamping * h;
     for (final f in fruits) {
       var v = Offset(f.vel.dx * damp, (f.vel.dy + gravity * h) * damp);
       var p = f.pos + v * h;
@@ -155,7 +164,7 @@ class World {
       }
       if (p.dy > height - r - wall) {
         p = Offset(p.dx, height - r - wall);
-        if (v.dy > 0) v = Offset(v.dx * 0.96, -v.dy * 0.1);
+        if (v.dy > 0) v = Offset(v.dx * _floorFriction, -v.dy * 0.1);
       }
       f
         ..pos = p
@@ -166,6 +175,7 @@ class World {
   void _collide() {
     final removed = <Fruit>{};
     final born = <Fruit>[];
+    final bumps = <(Offset, int)>[];
     final n = fruits.length;
     for (var i = 0; i < n; i++) {
       final a = fruits[i];
@@ -186,6 +196,7 @@ class World {
           if (a.level == maxLevel) {
             score += watermelonBonus;
             events.add(WorldEvent(mid, a.level, watermelonBonus, removed: true));
+            bumps.add((mid, a.level));
           } else {
             final lv = a.level + 1;
             final vel = (a.vel + b.vel) * 0.25;
@@ -194,6 +205,7 @@ class World {
             score += mergePoints[lv];
             biggest = math.max(biggest, lv);
             events.add(WorldEvent(mid, lv, mergePoints[lv]));
+            bumps.add((mid, lv));
           }
           break;
         }
@@ -210,19 +222,38 @@ class World {
           final jn = -(1 + _restitution) * vn / sum;
           a.vel -= nrm * (jn * ima);
           b.vel += nrm * (jn * imb);
-          // 약한 마찰: 접선 방향 상대 속도를 조금 줄인다 (굴러다님 억제).
+          // 아주 약한 마찰: 접선 방향 상대 속도를 살짝만 줄인다 (잘 미끄러지게).
           final t = Offset(-nrm.dy, nrm.dx);
           final vt = rel.dx * t.dx + rel.dy * t.dy;
-          final jt = -vt * 0.05 / sum;
+          final jt = -vt * _contactFriction / sum;
           a.vel -= t * (jt * ima);
           b.vel += t * (jt * imb);
         }
       }
     }
     if (removed.isEmpty) return;
-    fruits
-      ..removeWhere(removed.contains)
-      ..addAll(born);
+    fruits.removeWhere(removed.contains);
+    for (final (c, lv) in bumps) {
+      _bump(c, lv);
+    }
+    fruits.addAll(born);
+  }
+
+  /// 합쳐진 자리 주변 과일을 바깥쪽(살짝 위로)으로 톡 튕긴다. 가까울수록, 가벼울수록 세게.
+  void _bump(Offset c, int level) {
+    final big = fruitRadii[level];
+    for (final f in fruits) {
+      final d = f.pos - c;
+      final dist = d.distance;
+      // 표면 사이 틈 기준: 맞닿은 과일은 최대로, [bumpRange] 만큼 떨어지면 0.
+      final gap = dist - big - f.r;
+      if (gap >= bumpRange) continue;
+      final dir = dist > 1e-6 ? d / dist : const Offset(0, -1);
+      final falloff = (1 - gap / bumpRange).clamp(0.0, 1.0);
+      final weight = (big / f.r).clamp(0.6, 1.4);
+      final speed = bumpSpeed * (0.8 + level * 0.04) * falloff * weight;
+      f.vel += Offset(dir.dx * speed, dir.dy * speed - speed * 0.35);
+    }
   }
 
   /// [p] 위치의 과일 (위에 그려진 것 우선). 없으면 null.

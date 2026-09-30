@@ -2,13 +2,15 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// 최고 점수 · 망치 개수 · 진행 중인 판 · 언어 · 진동 설정을 기기에 저장한다.
+/// 최고 점수 · 망치 개수 · 진행 중인 판 · 언어 · 소리 · 진동 설정을 기기에 저장한다.
 class Storage {
   static const _kBest = 'best';
   static const _kHammers = 'hammers';
   static const _kGame = 'game';
   static const _kLocale = 'locale';
   static const _kVibration = 'vibration';
+  static const _kMusic = 'music';
+  static const _kSfx = 'sfx';
   static const _kBiggest = 'biggest_ever';
   static const _kSeenHelp = 'seen_help';
 
@@ -54,6 +56,12 @@ class Storage {
 
   bool get seenHelp => _prefs.getBool(_kSeenHelp) ?? false;
   Future<void> setSeenHelp() => _prefs.setBool(_kSeenHelp, true);
+
+  bool get music => _prefs.getBool(_kMusic) ?? true;
+  Future<void> setMusic(bool on) => _prefs.setBool(_kMusic, on);
+
+  bool get sfx => _prefs.getBool(_kSfx) ?? true;
+  Future<void> setSfx(bool on) => _prefs.setBool(_kSfx, on);
 
   bool get vibration => _prefs.getBool(_kVibration) ?? true;
   Future<void> setVibration(bool on) => _prefs.setBool(_kVibration, on);

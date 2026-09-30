@@ -135,4 +135,27 @@ void main() {
     expect(w.fruits, isEmpty);
     expect(w.fruitAt(const Offset(510, 1290)), isNull);
   });
+
+  test('a merge bumps nearby fruits outward', () {
+    final w = World(random: math.Random(1));
+    final floorY = World.height - World.wall;
+    final left = w.add(6, Offset(330, floorY - fruitRadii[6]));
+    w.add(2, Offset(500, floorY - fruitRadii[2]));
+    w.add(2, Offset(560, floorY - fruitRadii[2]));
+    // 한 스텝 안에 합쳐지고 이웃이 튕겨 나간다.
+    w.step(1 / 60);
+    expect(w.fruits.map((f) => f.level), containsAll([6, 3]));
+    expect(left.vel.dx, lessThan(-30));
+    expect(left.vel.dy, lessThan(0));
+  });
+
+  test('a fruit dropped on a slope slides off', () {
+    final w = World(random: math.Random(1));
+    final floorY = World.height - World.wall;
+    w.add(7, Offset(500, floorY - fruitRadii[7]));
+    final small = w.add(1, Offset(520, 300));
+    settle(w, 4);
+    // 큰 과일 꼭대기에 머물지 않고 옆으로 미끄러져 바닥까지 내려온다.
+    expect(small.pos.dy, greaterThan(floorY - fruitRadii[1] - 5));
+  });
 }

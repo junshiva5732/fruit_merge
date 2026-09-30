@@ -15,17 +15,21 @@ lib/
   game/world.dart               물리 세계: 원 충돌(서브스텝 8 × 반복 3), 합치기, 위험선·게임 오버, 저장/복원
   game/fruit_art.dart           과일 11종 그림 (코드로 그림: 몸통·무늬·꼭지·얼굴)
   game/board_painter.dart       상자·위험선·조준선·과일·파티클·점수 팝업, FruitIcon
-  services/storage.dart         최고 점수, 망치 개수, 진행 중인 판, 언어, 진동
+  services/storage.dart         최고 점수, 망치 개수, 진행 중인 판, 언어, 소리, 진동
+  services/sound.dart           배경음악(반복) + 효과음(저지연 플레이어 링), 광고·백그라운드 중 음악 정지
   screens/game_screen.dart      게임 화면 (상단 점수/다음 과일, 진화표, 망치, 게임 오버, 메뉴)
   widgets/banner_ad_widget.dart 하단 배너 (태블릿 대응 버전)
 test/world_test.dart            물리·합치기·게임 오버·이어하기·저장 테스트
 test/preview_render_test.dart   과일/판 미리보기 PNG → build/previews/
+tool/make_sounds.py             배경음악·효과음 합성 (numpy + ffmpeg) → assets/music, assets/sfx
 tool/icon_test.dart             앱 아이콘 원본 (flutter test tool/icon_test.dart → dart run flutter_launcher_icons)
 ```
 
 과일: 0 체리 → 딸기 → 포도 → 귤 → 감 → 사과 → 배 → 복숭아 → 파인애플 → 멜론 → 10 수박.
 떨어뜨리는 과일은 0~4단계. 수박 + 수박 = 둘 다 사라지고 +100.
 과일이 빨간 점선 위에 2.5초 넘게 있으면 게임 오버 (막 떨어진 과일 1.2초는 제외).
+합쳐지면 주변 과일이 바깥·위쪽으로 살짝 튕긴다 (`World.bumpSpeed`, `bumpRange`). 마찰은 낮게 (`_floorFriction`, `_contactFriction`).
+소리: 128BPM C장조 배경음악 30초 반복, 합치기 효과음은 과일 단계마다 음이 올라간다. 메뉴에서 배경음악/효과음/진동 각각 끄기.
 
 ## 광고
 

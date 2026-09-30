@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'ads/ad_manager.dart';
 import 'l10n/strings.dart';
 import 'screens/game_screen.dart';
+import 'services/sound.dart';
 import 'services/storage.dart';
 
 /// 스크린샷 촬영용 언어 강제 (디버그 빌드에서만 동작).
@@ -20,6 +21,8 @@ Future<void> main() async {
   AdManager.instance.init();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   final storage = await Storage.create();
+  // 소리 준비도 앱 표시를 막지 않는다.
+  Sound.instance.init(music: storage.music, sfx: storage.sfx);
   runApp(FruitMergeApp(storage: storage));
 }
 

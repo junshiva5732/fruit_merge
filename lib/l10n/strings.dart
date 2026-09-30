@@ -81,6 +81,8 @@ class S {
   String get no => _t('No', '아니요', 'いいえ', '否');
   String get cancel => _t('Cancel', '취소', 'キャンセル', '取消');
   String get vibration => _t('Vibration', '진동', 'バイブレーション', '振动');
+  String get music => _t('Music', '배경음악', 'BGM', '背景音乐');
+  String get soundEffects => _t('Sound effects', '효과음', '効果音', '音效');
   String get language => _t('Language', '언어', '言語', '语言');
   String get systemLanguage => _t('System default', '시스템 기본', 'システムの設定', '跟随系统');
   String get howToPlay => _t('How to play', '게임 방법', '遊び方', '玩法说明');

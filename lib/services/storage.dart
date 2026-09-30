@@ -13,6 +13,7 @@ class Storage {
   static const _kSfx = 'sfx';
   static const _kBiggest = 'biggest_ever';
   static const _kSeenHelp = 'seen_help';
+  static const _kSeenSpecial = 'seen_special_';
 
   /// 처음 설치하면 망치 1개를 준다.
   static const startHammers = 1;
@@ -53,6 +54,10 @@ class Storage {
 
   Future<void> saveGame(Map<String, Object>? game) =>
       game == null ? _prefs.remove(_kGame) : _prefs.setString(_kGame, jsonEncode(game));
+
+  /// 특수 과일(무지개·폭탄·돌) 설명을 이미 봤는지.
+  bool seenSpecial(int piece) => _prefs.getBool('$_kSeenSpecial$piece') ?? false;
+  Future<void> setSeenSpecial(int piece) => _prefs.setBool('$_kSeenSpecial$piece', true);
 
   bool get seenHelp => _prefs.getBool(_kSeenHelp) ?? false;
   Future<void> setSeenHelp() => _prefs.setBool(_kSeenHelp, true);

@@ -26,14 +26,25 @@ void main() {
         final col = l % 6, row = l ~/ 6;
         drawFruit(canvas, l, Offset(100 + col * 200.0, 150 + row * 270.0), 80);
       }
+      // 특수 과일: 무지개, 폭탄 (마지막 칸)
+      drawPiece(canvas, pieceRainbow, const Offset(1100, 420), 80, time: 0.3);
       await _save(rec.endRecording(), 1200, 560, 'fruits.png');
+      rec = ui.PictureRecorder();
+      canvas = Canvas(rec);
+      canvas.drawRect(const Rect.fromLTWH(0, 0, 1000, 260), Paint()..color = const Color(0xFFFFF8E1));
+      drawPiece(canvas, pieceBomb, const Offset(120, 140), 80, time: 0.1);
+      for (var hp = 3; hp >= 1; hp--) {
+        drawPiece(canvas, pieceStone, Offset(340 + (3 - hp) * 200.0, 140), 80, hp: hp);
+      }
+      drawPiece(canvas, pieceRainbow, const Offset(900, 140), 80, time: 1.2);
+      await _save(rec.endRecording(), 1000, 260, 'specials.png');
 
       final w = World(random: math.Random(5));
-      const levels = [9, 7, 6, 5, 5, 4, 4, 3, 3, 2, 2, 1, 1, 0, 0, 8, 3, 2];
+      const levels = [9, 7, 6, 5, pieceStone, 4, 4, 3, 3, 2, pieceRainbow, 1, 1, 0, 0, 8, 3, 2];
       var x = 120.0, y = 1200.0;
       for (final l in levels) {
         w.add(l, Offset(x, y));
-        x += fruitRadii[l] * 2 + 20;
+        x += pieceRadius(l) * 2 + 20;
         if (x > 880) {
           x = 150;
           y -= 200;

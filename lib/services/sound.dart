@@ -18,6 +18,9 @@ class Sound {
     'gameover': 1,
     'reward': 1,
     'bonus': 1,
+    'boom': 1,
+    'crumble': 1,
+    for (var i = 2; i <= 5; i++) 'combo_$i': 1,
     for (var i = 0; i <= 10; i++) 'merge_$i': i < 5 ? 3 : 2,
   };
   static const _volumes = {'drop': 0.55, 'click': 0.5, 'gameover': 0.8};

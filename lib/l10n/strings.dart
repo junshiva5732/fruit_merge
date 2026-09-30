@@ -63,6 +63,28 @@ class S {
   );
   String hammersGot(int n) => _t('+$n hammers!', '망치 +$n!', 'ハンマー +$n！', '锤子 +$n！');
   String get evolution => _t('Fruit chain', '과일 진화', 'フルーツの進化', '水果进化');
+  String get combo => _t('COMBO', '콤보', 'コンボ', '连击');
+  String get newSpecial => _t('New!', '새로운 과일!', 'NEW!', '新水果！');
+  String specialHint(int piece) => switch (piece) {
+    100 => _t(
+      'Rainbow fruit: merges with ANY fruit it touches.',
+      '무지개 과일: 닿은 과일이 무엇이든 한 단계 커져요!',
+      'にじフルーツ：触れたフルーツが何でも1段階大きくなる！',
+      '彩虹水果：碰到任何水果都能让它升一级！',
+    ),
+    101 => _t(
+      'Bomb: blasts the fruits around it when it lands.',
+      '폭탄: 닿는 순간 주변 과일을 크게 날려 보내요!',
+      'ばくだん：着地すると周りのフルーツを吹き飛ばす！',
+      '炸弹：落地时把周围的水果炸飞！',
+    ),
+    _ => _t(
+      'Stone: never merges. Merge next to it 3 times (or use a hammer) to break it.',
+      '돌: 합쳐지지 않아요. 옆에서 3번 합치거나 망치로 깨세요.',
+      '石：合体しません。となりで3回合体させるか、ハンマーで割ろう。',
+      '石头：不能合成。在旁边合成 3 次或用锤子敲碎。',
+    ),
+  };
 
   // 게임 오버
   String get gameOver => _t('GAME OVER', '게임 오버', 'ゲームオーバー', '游戏结束');
@@ -99,6 +121,11 @@ class S {
         'When two identical fruits touch, they merge into the next fruit and you score points. '
         'Cherry → Strawberry → Grape → Tangerine → Persimmon → Apple → Pear → Peach → Pineapple → Melon → Watermelon!\n\n'
         'If fruits stay above the red dotted line for too long, the game is over.\n\n'
+        'Combo: merge again within 1 second for ×2, ×3 … up to ×5 points!\n\n'
+        'Special fruits: Rainbow merges with anything, Bomb blasts nearby fruits, Stone never merges '
+        '(merge next to it 3 times or smash it).\n\n'
+        'The higher your score, the bigger the fruits, the less time above the line, and from 500 points '
+        'the fruit drops by itself if you wait too long.\n\n'
         'Hammer: smash any one fruit. Watch a short ad to get 2 more.\n'
         'Continue: once per game, watch a short ad to clear the fruits at the top and keep going.\n\n'
         'Your game is saved automatically, so you can come back any time.',
@@ -106,6 +133,10 @@ class S {
         '같은 과일 두 개가 닿으면 다음 과일로 합쳐지면서 점수를 얻어요. '
         '체리 → 딸기 → 포도 → 귤 → 감 → 사과 → 배 → 복숭아 → 파인애플 → 멜론 → 수박!\n\n'
         '과일이 빨간 점선 위에 오래 머물면 게임 오버예요.\n\n'
+        '콤보: 1초 안에 이어서 합치면 점수 ×2, ×3 … 최대 ×5!\n\n'
+        '특수 과일: 무지개는 아무 과일과 합쳐지고, 폭탄은 주변을 날려 보내요. '
+        '돌은 합쳐지지 않으니 옆에서 3번 합치거나 망치로 깨세요.\n\n'
+        '점수가 오를수록 큰 과일이 자주 나오고 버틸 시간이 줄어요. 500점부터는 오래 기다리면 과일이 저절로 떨어져요.\n\n'
         '망치: 과일 하나를 없앨 수 있어요. 짧은 광고를 보면 2개를 더 받아요.\n'
         '이어하기: 한 판에 한 번, 짧은 광고를 보면 위쪽 과일을 치우고 계속할 수 있어요.\n\n'
         '게임은 자동으로 저장되니 언제든 이어서 할 수 있어요.',
@@ -113,6 +144,10 @@ class S {
         '同じフルーツ同士がくっつくと、次のフルーツに合体して得点！'
         'さくらんぼ → いちご → ぶどう → みかん → かき → りんご → なし → もも → パイナップル → メロン → すいか！\n\n'
         'フルーツが赤い点線より上に長くとどまるとゲームオーバーです。\n\n'
+        'コンボ：1秒以内に続けて合体すると得点×2、×3…最大×5！\n\n'
+        '特別なフルーツ：にじは何とでも合体、ばくだんは周りを吹き飛ばす、'
+        '石は合体しないので、となりで3回合体させるかハンマーで割ろう。\n\n'
+        'スコアが上がるほど大きなフルーツが増え、耐えられる時間も短くなります。500点からは待ちすぎると自動で落ちます。\n\n'
         'ハンマー：フルーツを1つ消せます。短い広告を見ると2個もらえます。\n'
         'コンティニュー：1ゲームに1回、短い広告を見ると上のフルーツを消して続けられます。\n\n'
         'ゲームは自動で保存されるので、いつでも続きから遊べます。',
@@ -120,6 +155,10 @@ class S {
         '两个相同的水果碰到一起，就会合成下一种水果并得分！'
         '樱桃 → 草莓 → 葡萄 → 橘子 → 柿子 → 苹果 → 梨 → 桃子 → 菠萝 → 甜瓜 → 西瓜！\n\n'
         '水果在红色虚线上方停留太久，游戏就会结束。\n\n'
+        '连击：1 秒内连续合成，得分 ×2、×3 … 最高 ×5！\n\n'
+        '特殊水果：彩虹可与任何水果合成，炸弹会炸飞周围水果，'
+        '石头不能合成，在旁边合成 3 次或用锤子敲碎。\n\n'
+        '分数越高，大水果越多，可停留时间越短。500 分起，等待太久水果会自动落下。\n\n'
         '锤子：可以敲掉任意一个水果。观看短广告可再获得 2 把。\n'
         '继续：每局一次，观看短广告即可清除上方水果并继续游戏。\n\n'
         '游戏会自动保存，随时可以接着玩。',

@@ -71,12 +71,12 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
   World _demoWorld() {
     final rng = math.Random(11);
     final w = World(random: rng);
-    const levels = [8, 7, 6, 6, 5, 5, 4, 4, 3, 3, 3, 2, 2, 2, 1, 1, 1, 0, 0, 0, 5, 4, 2, 1];
+    const levels = [8, 7, 6, 6, 5, 5, 4, pieceStone, 3, 3, 3, 2, 2, pieceRainbow, 1, 1, 1, 0, 0, 0, 5, 4, 2, 1];
     var x = 120.0;
     var y = 1200.0;
     for (final l in levels) {
       w.add(l, Offset(x, y));
-      x += fruitRadii[l] * 2 + 20;
+      x += pieceRadius(l) * 2 + 20;
       if (x > 880) {
         x = 100 + rng.nextDouble() * 80;
         y -= 180;
@@ -89,7 +89,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     w
       ..score = 1284
       ..current = 3
-      ..next = 1
+      ..next = pieceRainbow
       ..aim(430);
     return w;
   }
@@ -145,20 +145,64 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
       _world.step(dt);
       for (final e in _world.events) {
         _fx.onEvent(e);
-        if (!e.removed) {
-          Sound.instance.merge(e.level);
-          _haptic(e.level >= 7 ? HapticFeedback.mediumImpact : HapticFeedback.lightImpact);
-        } else if (e.points > 0) {
-          Sound.instance.play('bonus');
-          _haptic(HapticFeedback.heavyImpact);
-        }
+        _onWorldEvent(e);
       }
       _world.events.clear();
+      _maybeExplainSpecial();
       if (_world.over && !_showOver) _onGameOver();
     }
     _fx.step(dt);
     if (_world.score != _shownScore) setState(() => _shownScore = _world.score);
     _repaint.value++;
+  }
+
+  /// 사건별 소리와 진동.
+  void _onWorldEvent(WorldEvent e) {
+    final snd = Sound.instance;
+    switch (e.type) {
+      case EventType.drop:
+        snd.play('drop');
+        _haptic(HapticFeedback.selectionClick);
+        _save();
+      case EventType.merge:
+        snd.merge(e.piece);
+        if (e.combo > 1) snd.play('combo_${math.min(e.combo, World.maxCombo)}');
+        _haptic(e.piece >= 7 || e.combo > 2 ? HapticFeedback.mediumImpact : HapticFeedback.lightImpact);
+      case EventType.bonus:
+        snd.play('bonus');
+        _haptic(HapticFeedback.heavyImpact);
+      case EventType.boom:
+        snd.play('boom');
+        _haptic(HapticFeedback.heavyImpact);
+      case EventType.crumble:
+        snd.play('crumble');
+        _haptic(HapticFeedback.mediumImpact);
+      case EventType.smash:
+        snd.play('smash');
+        _haptic(HapticFeedback.heavyImpact);
+      case EventType.clear:
+        break;
+    }
+  }
+
+  /// 특수 과일이 처음 "다음"에 나오면 한 번 설명해 준다.
+  void _maybeExplainSpecial() {
+    final p = _world.next;
+    if (!isSpecial(p) || _storage.seenSpecial(p) || _demo) return;
+    _storage.setSeenSpecial(p);
+    final s = S.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 5),
+        content: Row(
+          children: [
+            FruitIcon(p, size: 40),
+            const SizedBox(width: 12),
+            Expanded(child: Text('${s.newSpecial} ${s.specialHint(p)}')),
+          ],
+        ),
+      ),
+    );
   }
 
   void _haptic(Future<void> Function() f) {
@@ -167,8 +211,12 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
 
   // ---------------------------------------------------------------- 조작
 
+  /// 누르기 시작했을 때의 [World.drops]. 누르고 있는 동안 자동으로 떨어졌으면 손을 떼도 또 떨어뜨리지 않는다.
+  int _dropsAtPress = -1;
+
   void _aim(Offset local, double scale) {
     if (_hammerMode || _world.over) return;
+    if (!_aiming) _dropsAtPress = _world.drops;
     _world.aim(local.dx / scale);
     _aiming = true;
   }
@@ -176,12 +224,8 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
   void _release() {
     if (!_aiming) return;
     _aiming = false;
-    if (_world.drop()) {
-      Sound.instance.play('drop');
-      _haptic(HapticFeedback.selectionClick);
-      _save();
-      setState(() {});
-    }
+    if (_world.drops != _dropsAtPress) return;
+    if (_world.drop()) setState(() {});
   }
 
   void _tapBoard(Offset local, double scale) {
@@ -189,8 +233,6 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     final f = _world.fruitAt(local / scale);
     if (f == null) return;
     _world.smash(f);
-    Sound.instance.play('smash');
-    _haptic(HapticFeedback.heavyImpact);
     _storage.setHammers(_storage.hammers - 1);
     setState(() => _hammerMode = false);
     _save();
@@ -305,8 +347,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
   void _newGame() {
     setState(() {
       _world = World();
-      _fx.particles.clear();
-      _fx.popups.clear();
+      _fx.clear();
       _usedContinue = false;
       _showOver = false;
       _newBest = false;
@@ -517,6 +558,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
                                   time: _time,
                                   hammer: _hammerMode,
                                   showAim: true,
+                                  comboLabel: s.combo,
                                   repaint: _repaint,
                                 ),
                               ),

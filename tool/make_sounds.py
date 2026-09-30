@@ -238,6 +238,30 @@ def make_sfx():
         place(buf, bell(midi(n), 0.5, 0.18), k * 0.06, 0.5)
     write_wav(os.path.join(SFX, "reward.wav"), norm(buf, 0.75), SSR)
 
+    # 폭탄: 펑 (낮은 쿵 + 걸러진 잡음)
+    n = int(0.7 * SSR)
+    t = np.arange(n) / SSR
+    noise = rng.standard_normal(n)
+    lp = np.convolve(noise, np.ones(12) / 12, mode="same")  # 간단한 저역 통과
+    buf = lp * np.exp(-t / 0.18) * 1.6 + tone_sweep(130, 38, 0.7, 0.25) * 0.9
+    write_wav(os.path.join(SFX, "boom.wav"), norm(buf, 0.9), SSR)
+
+    # 돌 깨짐: 자갈 부딪히는 소리 여러 개
+    buf = np.zeros(int(0.45 * SSR))
+    for k in range(7):
+        m = int(0.03 * SSR)
+        click = np.diff(rng.standard_normal(m), prepend=0) * env(m, SSR, 0.001, 0.008)
+        place(buf, click, k * 0.045 + rng.random() * 0.02, 1.0 - k * 0.1)
+    place(buf, tone_sweep(260, 120, 0.15, 0.05), 0, 0.5)
+    write_wav(os.path.join(SFX, "crumble.wav"), norm(buf, 0.8), SSR)
+
+    # 콤보: 콤보 수만큼 빠르게 올라가는 반짝임
+    for c in range(2, 6):
+        buf = np.zeros(int(0.8 * SSR))
+        for k, n in enumerate([84, 88, 91, 96, 100][:c]):
+            place(buf, bell(midi(n), 0.4, 0.12), k * 0.045, 0.55)
+        write_wav(os.path.join(SFX, f"combo_{c}.wav"), norm(buf, 0.6), SSR)
+
     # 버튼: 똑
     write_wav(os.path.join(SFX, "click.wav"), norm(tone_sweep(1500, 900, 0.05, 0.015), 0.45), SSR)
     total = sum(os.path.getsize(os.path.join(SFX, f)) for f in os.listdir(SFX))

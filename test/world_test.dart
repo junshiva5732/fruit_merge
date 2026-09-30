@@ -43,7 +43,8 @@ void main() {
     expect(w.fruits.single.level, 3);
     expect(w.score, mergePoints[3]);
     expect(w.biggest, 3);
-    expect(w.events.single.level, 3);
+    expect(w.events.single.type, EventType.merge);
+    expect(w.events.single.piece, 3);
   });
 
   test('chain merge: 0+0 -> 1 then merges with a waiting 1', () {
@@ -157,5 +158,171 @@ void main() {
     settle(w, 4);
     // 큰 과일 꼭대기에 머물지 않고 옆으로 미끄러져 바닥까지 내려온다.
     expect(small.pos.dy, greaterThan(floorY - fruitRadii[1] - 5));
+  });
+
+  group('special fruits', () {
+    final floorY = World.height - World.wall;
+
+    test('rainbow upgrades the fruit it touches', () {
+      final w = World(random: math.Random(1));
+      final target = w.add(4, Offset(500, floorY - fruitRadii[4]));
+      w.add(pieceRainbow, Offset(500, target.pos.dy - 200));
+      settle(w, 1);
+      expect(w.fruits.map((f) => f.piece), [5]);
+      expect(w.score, mergePoints[5]);
+      expect(w.fruits.single.pos.dx, closeTo(500, 30));
+    });
+
+    test('rainbow on a watermelon clears it with the bonus', () {
+      final w = World(random: math.Random(1));
+      w.add(maxLevel, Offset(500, floorY - fruitRadii[maxLevel]));
+      w.add(pieceRainbow, const Offset(500, 700));
+      settle(w, 1.5);
+      expect(w.fruits, isEmpty);
+      expect(w.score, watermelonBonus);
+    });
+
+    test('two rainbows do not merge with each other', () {
+      final w = World(random: math.Random(1));
+      w.add(pieceRainbow, const Offset(480, 1300));
+      w.add(pieceRainbow, const Offset(540, 1300));
+      settle(w, 1);
+      expect(w.fruits, hasLength(2));
+    });
+
+    test('bomb explodes on contact and throws neighbours', () {
+      final w = World(random: math.Random(1));
+      final a = w.add(3, Offset(420, floorY - fruitRadii[3]));
+      final b = w.add(5, Offset(600, floorY - fruitRadii[5]));
+      w.add(pieceBomb, const Offset(510, 1000));
+      var boomed = false;
+      for (var i = 0; i < 60 && !boomed; i++) {
+        w.step(1 / 60);
+        boomed = w.events.any((e) => e.type == EventType.boom);
+      }
+      expect(boomed, isTrue);
+      expect(w.fruits.any((f) => f.kind == FruitKind.bomb), isFalse);
+      expect(w.fruits, hasLength(2)); // 과일은 없어지지 않고 날아가기만
+      expect(a.vel.dx, lessThan(-100));
+      expect(b.vel.dx, greaterThan(100));
+    });
+
+    test('bomb landing on the empty floor explodes too', () {
+      final w = World(random: math.Random(1));
+      w.add(pieceBomb, const Offset(500, 1200));
+      settle(w, 1);
+      expect(w.fruits, isEmpty);
+      expect(w.events.where((e) => e.type == EventType.boom), hasLength(1));
+    });
+
+    test('stone never merges and breaks after 3 nearby merges', () {
+      final w = World(random: math.Random(1));
+      final stone = w.add(pieceStone, Offset(500, floorY - pieceRadius(pieceStone)));
+      w.add(pieceStone, Offset(610, floorY - pieceRadius(pieceStone)));
+      settle(w, 0.5);
+      expect(w.fruits.where((f) => f.kind == FruitKind.stone), hasLength(2));
+      for (var k = 0; k < 3; k++) {
+        w.add(0, stone.pos.translate(-90, -60));
+        w.add(0, stone.pos.translate(-40, -60));
+        settle(w, 0.4);
+      }
+      expect(w.fruits.contains(stone), isFalse);
+      expect(w.events.any((e) => e.type == EventType.crumble), isTrue);
+    });
+
+    test('specials only appear after the score threshold and never twice in a row', () {
+      final w = World(random: math.Random(4));
+      var seen = <int>{};
+      for (var i = 0; i < 400; i++) {
+        w.cooldown = 0;
+        w.drop();
+        w.fruits.clear();
+        seen.add(w.next);
+      }
+      expect(seen.any(isSpecial), isFalse);
+
+      w.score = 3000;
+      seen = {};
+      var prev = w.current;
+      for (var i = 0; i < 2000; i++) {
+        w.cooldown = 0;
+        w.drop();
+        w.fruits.clear();
+        if (isSpecial(prev)) expect(isSpecial(w.current) && isSpecial(w.next), isFalse);
+        prev = w.current;
+        seen.add(w.next);
+      }
+      expect(seen, containsAll([pieceRainbow, pieceBomb, pieceStone, 5]));
+    });
+
+    test('save keeps special pieces and stone damage', () {
+      final w = World(random: math.Random(1));
+      w.add(pieceStone, const Offset(300, 1300)).hp = 1;
+      w.add(pieceRainbow, const Offset(700, 1300));
+      final copy = World.fromJson(w.toJson())!;
+      expect(copy.fruits.map((f) => f.kind), [FruitKind.stone, FruitKind.rainbow]);
+      expect(copy.fruits.first.hp, 1);
+    });
+  });
+
+  group('difficulty', () {
+    test('curve tightens with score', () {
+      final w = World(random: math.Random(1));
+      expect(w.overAfter, 2.5);
+      expect(w.autoDropLeft, isNull);
+      w.score = World.hardScore;
+      expect(w.overAfter, closeTo(1.5, 1e-9));
+      expect(w.autoDropAfter, closeTo(4, 1e-9));
+    });
+
+    test('auto drop after waiting', () {
+      final w = World(random: math.Random(1));
+      w.score = World.autoDropFrom;
+      for (var i = 0; i < 60 * 5; i++) {
+        w.step(1 / 60);
+      }
+      expect(w.drops, 0);
+      for (var i = 0; i < 60 * 2; i++) {
+        w.step(1 / 60);
+      }
+      expect(w.drops, 1);
+      expect(w.events.any((e) => e.type == EventType.drop), isTrue);
+    });
+
+    test('bigger fruits get more common', () {
+      double avg(int score) {
+        final w = World(random: math.Random(9))..score = score;
+        var sum = 0;
+        var n = 0;
+        for (var i = 0; i < 3000; i++) {
+          w.cooldown = 0;
+          w.drop();
+          w.fruits.clear();
+          if (!isSpecial(w.next)) {
+            sum += w.next;
+            n++;
+          }
+        }
+        return sum / n;
+      }
+
+      expect(avg(World.hardScore), greaterThan(avg(0) + 0.5));
+    });
+  });
+
+  test('combo multiplies points for quick successive merges', () {
+    final w = World(random: math.Random(1));
+    final floorY = World.height - World.wall;
+    // 체리 둘 → 딸기, 그 딸기가 옆 딸기와 → 포도 (연쇄)
+    final y = floorY - fruitRadii[1];
+    w.add(1, Offset(500, y));
+    w.add(0, Offset(480, y - 70));
+    w.add(0, Offset(520, y - 70));
+    settle(w, 1.5);
+    final merges = w.events.where((e) => e.type == EventType.merge).toList();
+    expect(merges.map((e) => e.combo), [1, 2]);
+    expect(w.score, mergePoints[1] + mergePoints[2] * 2);
+    // 1초 넘게 지나면 콤보가 끊긴다.
+    expect(w.combo, 0);
   });
 }

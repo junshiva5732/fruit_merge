@@ -12,15 +12,19 @@ lib/
   l10n/strings.dart             문자열 en/ko/ja/zh (과일 이름 포함) + LocaleController
   ads/ad_ids.dart               AdMob 광고 단위 ID  ← 출시 전 교체 (지금은 테스트 ID)
   ads/ad_manager.dart           전면(게임 오버 3번에 1번, 45초 간격) + 보상형
-  game/world.dart               물리 세계: 원 충돌(서브스텝 8 × 반복 3), 합치기, 위험선·게임 오버, 저장/복원
+  game/world.dart               물리 세계: 원 충돌(서브스텝 8 × 반복 3), 합치기, 위험선·게임 오버, 저장/복원, 규칙(Rules)
+  game/stages.dart              스테이지 60개 (목표·과일 수·해금), 별 계산
   game/fruit_art.dart           과일 11종 그림 (코드로 그림: 몸통·무늬·꼭지·얼굴)
   game/board_painter.dart       상자·위험선·조준선·과일·파티클·점수 팝업, FruitIcon
   services/storage.dart         최고 점수, 망치 개수, 진행 중인 판, 언어, 소리, 진동
   services/sound.dart           배경음악(반복) + 효과음(저지연 플레이어 링), 광고·백그라운드 중 음악 정지
-  screens/game_screen.dart      게임 화면 (상단 점수/다음 과일, 진화표, 망치, 게임 오버, 메뉴)
+  screens/map_screen.dart       첫 화면: 스테이지 지도 (6개 지역, 구불구불한 길, 별, 무한 모드 버튼)
+  screens/game_screen.dart      게임 화면 (무한/스테이지 공용: 목표 HUD, 망치, 결과 화면, 메뉴)
+  widgets/dialogs.dart          설정·언어·게임 방법 대화상자, 진화표
   widgets/banner_ad_widget.dart 하단 배너 (태블릿 대응 버전)
 test/world_test.dart            물리·합치기·게임 오버·이어하기·저장 테스트
 test/preview_render_test.dart   과일/판 미리보기 PNG → build/previews/
+tool/balance_test.dart          자동 플레이로 스테이지 난이도 측정 → stages.dart 표 (flutter test tool/balance_test.dart)
 tool/make_sounds.py             배경음악·효과음 합성 (numpy + ffmpeg) → assets/music, assets/sfx
 tool/icon_test.dart             앱 아이콘 원본 (flutter test tool/icon_test.dart → dart run flutter_launcher_icons)
 ```
@@ -28,7 +32,15 @@ tool/icon_test.dart             앱 아이콘 원본 (flutter test tool/icon_tes
 과일: 0 체리 → 딸기 → 포도 → 귤 → 감 → 사과 → 배 → 복숭아 → 파인애플 → 멜론 → 10 수박.
 떨어뜨리는 과일은 0~5단계. 수박 + 수박 = 둘 다 사라지고 +100.
 
-### 난이도 · 랜덤성 (`World`)
+### 스테이지 (`Stage`)
+60개, 10개씩 6개 지역 (사과 과수원 → 딸기 밭 → 열대 해변 → 노을 언덕 → 별빛 정원 → 무지개 성).
+- 목표: 점수 모으기 / 5의 배수는 과일 만들기 (감 → … → 60 수박) / 8·13·18… 은 바닥에 깔린 돌 깨기
+- 과일 수 제한, 남은 과일 30% 이상 ★★★, 15% 이상 ★★, 아니면 ★. 이전 스테이지를 깨야 다음이 열림
+- 고정 난이도 0 → 0.85, 해금: 3 무지개 · 5 폭탄 · 7 떨어지는 돌 · 8 자동 낙하 (스테이지 카드에 "새로 등장")
+- 실패 시 이어하기(광고, 1번): 넘침 → 위쪽 정리, 과일 부족 → +5개. 5의 배수 첫 클리어 → 망치 +1
+- 목표치·과일 수는 자동 플레이(스테이지당 12판)로 성공률 약 95% → 45% 가 되게 맞춤. 점수 ≈ 0.9 × (250 + 27 × 스테이지)
+
+### 무한 모드 난이도 · 랜덤성 (`World`)
 | 항목 | 처음 | 4000점 이상 (`hardScore`) |
 |---|---|---|
 | 떨어지는 과일 확률 | 체리 30 · 딸기 27 · 포도 21 · 귤 14 · 감 8 · 사과 0 | 16 · 20 · 24 · 22 · 13 · 5 |

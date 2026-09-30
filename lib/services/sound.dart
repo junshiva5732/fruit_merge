@@ -19,6 +19,8 @@ class Sound {
     'reward': 1,
     'bonus': 1,
     'boom': 1,
+    'stageclear': 1,
+    'star': 3,
     'crumble': 1,
     for (var i = 2; i <= 5; i++) 'combo_$i': 1,
     for (var i = 0; i <= 10; i++) 'merge_$i': i < 5 ? 3 : 2,

@@ -64,6 +64,51 @@ class S {
   String hammersGot(int n) => _t('+$n hammers!', '망치 +$n!', 'ハンマー +$n！', '锤子 +$n！');
   String get evolution => _t('Fruit chain', '과일 진화', 'フルーツの進化', '水果进化');
   String get combo => _t('COMBO', '콤보', 'コンボ', '连击');
+
+  // 스테이지 / 지도
+  String stageN(int n) => _t('Stage $n', '스테이지 $n', 'ステージ $n', '第 $n 关');
+  String get endless => _t('Endless', '무한 모드', 'エンドレス', '无尽模式');
+  String regionName(int i) => switch (i) {
+    0 => _t('Apple Orchard', '사과 과수원', 'りんご果樹園', '苹果园'),
+    1 => _t('Berry Field', '딸기 밭', 'いちご畑', '草莓田'),
+    2 => _t('Tropical Beach', '열대 해변', 'トロピカルビーチ', '热带海滩'),
+    3 => _t('Sunset Hill', '노을 언덕', '夕焼けの丘', '夕阳山丘'),
+    4 => _t('Starlight Garden', '별빛 정원', '星あかりの庭', '星光花园'),
+    _ => _t('Rainbow Castle', '무지개 성', 'にじのお城', '彩虹城堡'),
+  };
+  String get goal => _t('GOAL', '목표', 'もくひょう', '目标');
+  String goalScore(int n) => _t('Score $n points', '$n점 모으기', '$n点を集めよう', '获得 $n 分');
+  String goalFruit(int level) => _t('Make a ${fruitName(level)}', '${fruitName(level)} 만들기', '${fruitName(level)}を作ろう', '合成${fruitName(level)}');
+  String goalStones(int n) => _t('Break $n stones', '돌 $n개 깨기', '石を$n個割ろう', '敲碎 $n 块石头');
+  String dropsLimit(int n) => _t('Within $n fruits', '과일 $n개 안에', 'フルーツ$n個以内で', '$n 个水果之内');
+  String get dropsLeft => _t('LEFT', '남은 과일', 'のこり', '剩余');
+  String get play => _t('Play', '시작', 'スタート', '开始');
+  String get stageClear => _t('STAGE CLEAR!', '스테이지 클리어!', 'ステージクリア！', '过关！');
+  String get stageFailed => _t('FAILED', '실패', 'しっぱい', '失败');
+  String get outOfDrops => _t('Out of fruits!', '과일을 다 썼어요!', 'フルーツがなくなった！', '水果用完了！');
+  String get overflow => _t('The box overflowed!', '상자가 넘쳤어요!', '箱からあふれた！', '箱子满出来了！');
+  String get plusDrops => _t('+5 fruits', '과일 +5개', 'フルーツ+5個', '水果 +5');
+  String get plusDropsHint => _t('Watch an ad to get 5 more fruits', '광고 보고 과일 5개 더 받기', '広告を見てフルーツを5個追加', '看广告再得 5 个水果');
+  String get nextStage => _t('Next stage', '다음 스테이지', '次のステージ', '下一关');
+  String get retry => _t('Retry', '다시 도전', 'リトライ', '重试');
+  String get toMap => _t('Map', '지도', 'マップ', '地图');
+  String get hammerReward => _t('Bonus: +1 hammer!', '보너스: 망치 +1!', 'ボーナス：ハンマー+1！', '奖励：锤子 +1！');
+  String get locked => _t('Clear the previous stage first', '이전 스테이지를 먼저 깨 주세요', '前のステージをクリアしよう', '请先通过上一关');
+  String get settings => _t('Settings', '설정', '設定', '设置');
+  String get bestStars => _t('Best', '최고 기록', 'ベスト', '最佳');
+  String get newHere => _t('NEW', '새로 등장', 'NEW', '新登场');
+  String get autoDropHint => _t(
+    'From here on, the fruit drops by itself if you wait too long.',
+    '이제부터 오래 기다리면 과일이 저절로 떨어져요.',
+    'ここからは、待ちすぎるとフルーツが自動で落ちます。',
+    '从这里开始，等待太久水果会自动落下。',
+  );
+  String get fallingStonesHint => _t(
+    'Stones start falling from the sky too!',
+    '이제 하늘에서 돌도 떨어져요!',
+    '空から石も落ちてくるよ！',
+    '天上也会掉下石头了！',
+  );
   String get newSpecial => _t('New!', '새로운 과일!', 'NEW!', '新水果！');
   String specialHint(int piece) => switch (piece) {
     100 => _t(

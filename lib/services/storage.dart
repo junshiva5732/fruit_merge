@@ -14,6 +14,7 @@ class Storage {
   static const _kBiggest = 'biggest_ever';
   static const _kSeenHelp = 'seen_help';
   static const _kSeenSpecial = 'seen_special_';
+  static const _kStars = 'stage_stars';
 
   /// 처음 설치하면 망치 1개를 준다.
   static const startHammers = 1;
@@ -54,6 +55,37 @@ class Storage {
 
   Future<void> saveGame(Map<String, Object>? game) =>
       game == null ? _prefs.remove(_kGame) : _prefs.setString(_kGame, jsonEncode(game));
+
+  // ---------------------------------------------------------- 스테이지
+
+  /// 스테이지별 별 (0 = 아직 못 깸). 문자열 '3210…' 로 저장.
+  String get _stars => _prefs.getString(_kStars) ?? '';
+
+  int stars(int stage) {
+    final s = _stars;
+    return stage - 1 < s.length ? int.parse(s[stage - 1]) : 0;
+  }
+
+  /// 별을 기록한다 (더 많을 때만). 처음 깬 것이면 true.
+  bool recordStars(int stage, int n) {
+    final before = stars(stage);
+    if (n <= before) return false;
+    final list = _stars.padRight(stage, '0').split('');
+    list[stage - 1] = '$n';
+    _prefs.setString(_kStars, list.join());
+    return before == 0;
+  }
+
+  int get totalStars => _stars.split('').fold(0, (a, c) => a + int.parse(c));
+
+  /// 도전할 수 있는 가장 높은 스테이지 (이전 스테이지를 깨야 열린다).
+  int get unlockedStage {
+    var n = 1;
+    while (stars(n) > 0) {
+      n++;
+    }
+    return n;
+  }
 
   /// 특수 과일(무지개·폭탄·돌) 설명을 이미 봤는지.
   bool seenSpecial(int piece) => _prefs.getBool('$_kSeenSpecial$piece') ?? false;

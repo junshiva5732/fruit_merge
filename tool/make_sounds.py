@@ -262,6 +262,20 @@ def make_sfx():
             place(buf, bell(midi(n), 0.4, 0.12), k * 0.045, 0.55)
         write_wav(os.path.join(SFX, f"combo_{c}.wav"), norm(buf, 0.6), SSR)
 
+    # 스테이지 클리어: 밝은 팡파르 (도-미-솔-도 + 화음)
+    buf = np.zeros(int(1.8 * SSR))
+    for k, n in enumerate([72, 76, 79, 84]):
+        place(buf, bell(midi(n), 0.6, 0.2), k * 0.11, 0.55)
+    for n in [72, 76, 79, 84, 88]:
+        place(buf, bell(midi(n), 1.2, 0.5), 0.46, 0.3)
+    write_wav(os.path.join(SFX, "stageclear.wav"), norm(buf, 0.85), SSR)
+
+    # 별: 띵
+    buf = np.zeros(int(0.6 * SSR))
+    place(buf, bell(midi(93), 0.55, 0.22), 0, 0.7)
+    place(buf, bell(midi(100), 0.4, 0.15), 0.03, 0.35)
+    write_wav(os.path.join(SFX, "star.wav"), norm(buf, 0.7), SSR)
+
     # 버튼: 똑
     write_wav(os.path.join(SFX, "click.wav"), norm(tone_sweep(1500, 900, 0.05, 0.015), 0.45), SSR)
     total = sum(os.path.getsize(os.path.join(SFX, f)) for f in os.listdir(SFX))

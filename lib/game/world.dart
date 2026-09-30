@@ -37,6 +37,25 @@ double pieceRadius(int piece) => switch (kindOf(piece)) {
 const _easyWeights = <int>[30, 27, 21, 14, 8, 0];
 const _hardWeights = <int>[16, 20, 24, 22, 13, 5];
 
+/// 한 판의 규칙. 무한 모드는 [Rules.endless] (점수에 따라 어려워짐), 스테이지는 고정 난이도.
+class Rules {
+  /// 고정 난이도 0~1. null 이면 점수에 따라 올라간다 (무한 모드).
+  final double? difficulty;
+  final bool rainbow;
+  final bool bomb;
+
+  /// 떨어지는 돌 확률. null 이면 무한 모드 곡선 ([World.stonesFrom] 점부터 3% → 8%).
+  final double? stoneChance;
+  final bool autoDrop;
+
+  /// 떨어뜨릴 수 있는 과일 수. null 이면 무제한.
+  final int? dropLimit;
+
+  const Rules({this.difficulty, this.rainbow = true, this.bomb = true, this.stoneChance, this.autoDrop = true, this.dropLimit});
+
+  static const endless = Rules();
+}
+
 class Fruit {
   final int id;
   final FruitKind kind;
@@ -185,17 +204,30 @@ class World {
   int combo = 0;
   double _comboLeft = 0;
 
+  /// 이번 판에 깬 돌 수 (망치 포함).
+  int stonesBroken = 0;
+
+  final Rules rules;
+
+  /// 추가로 받은 과일 수 (스테이지 이어하기 +5).
+  int extraDrops = 0;
+
   int _nextId = 0;
 
-  World({math.Random? random}) : _rng = random ?? math.Random() {
+  World({math.Random? random, this.rules = Rules.endless}) : _rng = random ?? math.Random() {
     current = _roll(first: true);
     next = _roll();
   }
 
+  bool get _endless => rules.difficulty == null;
+
+  /// 남은 과일 수. 무제한이면 null.
+  int? get dropsLeft => rules.dropLimit == null ? null : math.max(0, rules.dropLimit! + extraDrops - drops);
+
   // ------------------------------------------------------------ 난이도
 
   /// 0 (처음) ~ 1 ([hardScore] 점 이상).
-  double get difficulty => (score / hardScore).clamp(0.0, 1.0);
+  double get difficulty => rules.difficulty ?? (score / hardScore).clamp(0.0, 1.0);
 
   /// 선 위에서 버틸 수 있는 시간: 2.5초 → 1.5초.
   double get overAfter => 2.5 - difficulty;
@@ -204,9 +236,11 @@ class World {
   double get autoDropAfter => 6.0 - 2.0 * difficulty;
 
   /// 자동 낙하까지 남은 시간. 해당 없으면 null.
-  double? get autoDropLeft => score >= autoDropFrom && canDrop ? math.max(0.0, autoDropAfter - idle) : null;
+  double? get autoDropLeft => _autoDropOn && canDrop ? math.max(0.0, autoDropAfter - idle) : null;
 
-  bool get canDrop => cooldown <= 0 && !over;
+  bool get _autoDropOn => rules.autoDrop && (!_endless || score >= autoDropFrom);
+
+  bool get canDrop => cooldown <= 0 && !over && (dropsLeft ?? 1) > 0;
 
   /// 선 위에 과일이 걸려 있는 중인지 (경고 표시용).
   bool get inDanger => danger > 0.2;
@@ -214,13 +248,14 @@ class World {
   int _roll({bool first = false}) {
     if (first) return _rng.nextInt(3); // 첫 과일은 작은 것 중에서
     // 특수 과일: 연달아 나오지 않게, 지금 과일이 일반일 때만.
-    if (!isSpecial(current) && score >= specialsFrom) {
-      final d = difficulty;
-      final stone = score >= stonesFrom ? 0.03 + 0.05 * d : 0.0;
+    if (!isSpecial(current) && (!_endless || score >= specialsFrom)) {
+      final rainbow = rules.rainbow ? 0.035 : 0.0;
+      final bomb = rules.bomb ? 0.025 : 0.0;
+      final stone = rules.stoneChance ?? (score >= stonesFrom ? 0.03 + 0.05 * difficulty : 0.0);
       final t = _rng.nextDouble();
-      if (t < 0.035) return pieceRainbow;
-      if (t < 0.035 + 0.025) return pieceBomb;
-      if (t < 0.06 + stone) return pieceStone;
+      if (t < rainbow) return pieceRainbow;
+      if (t < rainbow + bomb) return pieceBomb;
+      if (t < rainbow + bomb + stone) return pieceStone;
     }
     final d = difficulty;
     final weights = [for (var i = 0; i < _easyWeights.length; i++) _easyWeights[i] + (_hardWeights[i] - _easyWeights[i]) * d];
@@ -270,7 +305,7 @@ class World {
     _comboLeft -= dt;
     if (_comboLeft <= 0) combo = 0;
 
-    if (score >= autoDropFrom && canDrop) {
+    if (_autoDropOn && canDrop) {
       idle += dt;
       if (idle >= autoDropAfter) drop();
     }
@@ -451,6 +486,7 @@ class World {
     if (broken == null) return;
     for (final s in broken) {
       fruits.remove(s);
+      stonesBroken++;
       events.add(WorldEvent(EventType.crumble, s.pos, piece: pieceStone));
     }
   }
@@ -468,6 +504,7 @@ class World {
   /// 망치: 과일 하나를 없앤다.
   void smash(Fruit f) {
     if (!fruits.remove(f)) return;
+    if (f.kind == FruitKind.stone) stonesBroken++;
     events.add(WorldEvent(EventType.smash, f.pos, piece: f.piece));
   }
 

@@ -5,7 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'ads/ad_manager.dart';
 import 'l10n/strings.dart';
-import 'screens/game_screen.dart';
+import 'screens/map_screen.dart';
 import 'services/sound.dart';
 import 'services/storage.dart';
 
@@ -64,7 +64,7 @@ class _FruitMergeAppState extends State<FruitMergeApp> {
           supportedLocales: S.supported,
           // 우선순위: 스크린샷용 강제 > 사용자 설정 > 시스템 언어
           locale: kDebugMode && _localeOverride.isNotEmpty ? Locale(_localeOverride) : _locale.value,
-          home: GameScreen(storage: widget.storage),
+          home: MapScreen(storage: widget.storage),
         ),
       ),
     );

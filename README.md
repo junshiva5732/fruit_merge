@@ -1,0 +1,64 @@
+# 과일 합치기 (fruit_merge)
+
+같은 과일 두 개가 닿으면 다음 과일로 합쳐지는 물리 머지 퍼즐. 위에서 과일을 떨어뜨려 수박까지 키운다.
+Flutter, Android + iOS. 한국어 · 영어 · 일본어 · 중국어(간체).
+앱 이름: 과일 합치기 / Fruit Merge / フルーツ合体 / 水果合合. applicationId `com.jun5731.fruit_merge`.
+
+## 구조
+
+```
+lib/
+  main.dart                     앱 진입, 세로 고정, 스크린샷용 LOCALE 강제
+  l10n/strings.dart             문자열 en/ko/ja/zh (과일 이름 포함) + LocaleController
+  ads/ad_ids.dart               AdMob 광고 단위 ID  ← 출시 전 교체 (지금은 테스트 ID)
+  ads/ad_manager.dart           전면(게임 오버 3번에 1번, 45초 간격) + 보상형
+  game/world.dart               물리 세계: 원 충돌(서브스텝 8 × 반복 3), 합치기, 위험선·게임 오버, 저장/복원
+  game/fruit_art.dart           과일 11종 그림 (코드로 그림: 몸통·무늬·꼭지·얼굴)
+  game/board_painter.dart       상자·위험선·조준선·과일·파티클·점수 팝업, FruitIcon
+  services/storage.dart         최고 점수, 망치 개수, 진행 중인 판, 언어, 진동
+  screens/game_screen.dart      게임 화면 (상단 점수/다음 과일, 진화표, 망치, 게임 오버, 메뉴)
+  widgets/banner_ad_widget.dart 하단 배너 (태블릿 대응 버전)
+test/world_test.dart            물리·합치기·게임 오버·이어하기·저장 테스트
+test/preview_render_test.dart   과일/판 미리보기 PNG → build/previews/
+tool/icon_test.dart             앱 아이콘 원본 (flutter test tool/icon_test.dart → dart run flutter_launcher_icons)
+```
+
+과일: 0 체리 → 딸기 → 포도 → 귤 → 감 → 사과 → 배 → 복숭아 → 파인애플 → 멜론 → 10 수박.
+떨어뜨리는 과일은 0~4단계. 수박 + 수박 = 둘 다 사라지고 +100.
+과일이 빨간 점선 위에 2.5초 넘게 있으면 게임 오버 (막 떨어진 과일 1.2초는 제외).
+
+## 광고
+
+| 위치 | 종류 | 비고 |
+|---|---|---|
+| 화면 하단 | 배너 | 적응형, 실패 시 320x50 |
+| 게임 오버 → 다시 하기 | 전면 | 3판에 1번, 직전 전면/보상형에서 45초 이후 |
+| 망치 0개일 때 망치 버튼 | 보상형 | 망치 +2 (처음 설치 시 1개 무료) |
+| 게임 오버 → 이어하기 | 보상형 | 한 판에 1번, 위쪽 과일 정리 후 계속 |
+
+## 개발 빌드
+
+```bash
+flutter pub get
+flutter test
+flutter build apk --debug --target-platform android-arm64
+```
+
+스크린샷용: `--dart-define=LOCALE=ko --dart-define=DEMO=true` (디버그 전용, 과일이 쌓인 판으로 시작).
+이 PC 전용 설정(AGP 9 / Gradle 9.3, `-Djdk.net.unixdomain.tmpdir=C:/tmp`, `kotlin.incremental=false`)은 sky_hop 과 같다.
+
+## 출시 체크리스트
+
+### 1. AdMob
+- [ ] Android 앱 "Fruit Merge" 등록
+- [ ] 광고 단위: 배너 / 전면 / 보상형
+- [ ] `lib/ads/ad_ids.dart` `_androidReal`, `AndroidManifest.xml` `APPLICATION_ID` 교체
+
+### 2. 개인정보 / 정책
+- [ ] GitHub 저장소(공개) + Pages 로 `docs/privacy-policy.html` 게시
+- [ ] Play Console 앱 콘텐츠 (광고 있음, 타겟층 13세 이상, 데이터 보안: 광고 ID·기기 정보 AdMob)
+
+### 3. Google Play
+- [ ] 업로드 키 `android/upload-keystore.jks` + `android/key.properties` (git 제외, 따로 백업)
+- [ ] `flutter build appbundle --release`
+- [ ] 스토어 그래픽·등록정보, 내부 테스트 → 비공개 테스트(12명 × 14일) → 프로덕션

@@ -95,15 +95,15 @@ flutter build apk --debug --target-platform android-arm64
 ## 출시 체크리스트
 
 ### 1. AdMob
-- [ ] Android 앱 "Fruit Merge" 등록
-- [ ] 광고 단위: 배너 / 전면 / 보상형
-- [ ] `lib/ads/ad_ids.dart` `_androidReal`, `AndroidManifest.xml` `APPLICATION_ID` 교체
+- [x] Android 앱 "Fruit Merge" 등록 (ca-app-pub-7493209423244427~4276769812)
+- [x] 광고 단위: 배너 / 전면 / 보상형 (파트너 입찰 끔)
+- [x] `lib/ads/ad_ids.dart` `_androidReal`, `AndroidManifest.xml` `APPLICATION_ID` 교체
 
 ### 2. 개인정보 / 정책
-- [ ] GitHub 저장소(공개) + Pages 로 `docs/privacy-policy.html` 게시
+- [x] GitHub 저장소(공개) + Pages 로 `docs/privacy-policy.html` 게시 → https://junshiva5732.github.io/fruit_merge/privacy-policy.html
 - [ ] Play Console 앱 콘텐츠 (광고 있음, 타겟층 13세 이상, 데이터 보안: 광고 ID·기기 정보 AdMob)
 
 ### 3. Google Play
-- [ ] 업로드 키 `android/upload-keystore.jks` + `android/key.properties` (git 제외, 따로 백업)
-- [ ] `flutter build appbundle --release`
-- [ ] 스토어 그래픽·등록정보, 내부 테스트 → 비공개 테스트(12명 × 14일) → 프로덕션
+- [x] 업로드 키 `android/upload-keystore.jks` + `android/key.properties` (git 제외, **따로 백업 필요**)
+- [x] `flutter build appbundle --release`
+- [x] 스토어 그래픽·등록정보 (`store/listing.md`, `bash tool/capture_screens.sh ko|en` → `python tool/make_store_assets.py`), 내부 테스트 → 비공개 테스트(12명 × 14일) → 프로덕션

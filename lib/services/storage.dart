@@ -25,6 +25,15 @@ class Storage {
 
   static Future<Storage> create() async => Storage(await SharedPreferences.getInstance());
 
+  /// 스크린샷용 가짜 진행 상태 (DEMO 디버그 빌드에서만 호출).
+  Future<void> seedDemo() async {
+    await _prefs.setString(_kStars, '33233323332332');
+    await _prefs.setInt(_kBest, 4820);
+    await _prefs.setInt(_kBiggest, 9);
+    await _prefs.setInt(_kHammers, 3);
+    await _prefs.setBool(_kSeenHelp, true);
+  }
+
   int get best => _prefs.getInt(_kBest) ?? 0;
 
   /// [score] 가 최고 기록이면 저장하고 true.

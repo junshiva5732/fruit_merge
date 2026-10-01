@@ -8,14 +8,17 @@ import 'package:flutter/foundation.dart';
 ///   개발 중 실제 광고를 클릭하면 무효 트래픽으로 계정이 정지될 수 있으므로.
 /// - 릴리즈 빌드(`--release`, 스토어 배포): 실제 ID.
 ///
-/// Android 실제 ID: 아직 없음 — AdMob 등록 후 [_androidReal] 교체 (지금은 테스트 ID).
+/// Android 실제 ID: AdMob 앱 "Fruit Merge" (ca-app-pub-7493209423244427~4276769812).
 /// 보상형 단위 하나를 망치 받기·이어하기에 함께 쓴다.
 class AdIds {
   AdIds._();
 
   // ── 실제 ID ─────────────────────────────────────────────────────────
-  // TODO(출시): AdMob 에서 받은 실제 ID 로 교체
-  static const _androidReal = _androidTest;
+  static const _androidReal = _Ids(
+    banner: 'ca-app-pub-7493209423244427/7070454110',
+    interstitial: 'ca-app-pub-7493209423244427/6716154335',
+    rewarded: 'ca-app-pub-7493209423244427/8519267152',
+  );
 
   // TODO(iOS): AdMob 에서 iOS 앱 등록 후 교체
   static const _iosReal = _iosTest;

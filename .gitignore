@@ -61,3 +61,6 @@ app.*.map.json
 
 # Android build outputs
 /android/build/
+
+# 스토어 스크린샷 원본 (tool/capture_screens.sh)
+/store/raw/

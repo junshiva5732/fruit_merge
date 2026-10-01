@@ -23,6 +23,8 @@ Future<void> main() async {
   AdManager.instance.init();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   final storage = await Storage.create();
+  // 스크린샷용(DEMO, 디버그 전용): 스테이지 진행·최고 점수가 있는 상태로 시작.
+  if (kDebugMode && const bool.fromEnvironment('DEMO')) await storage.seedDemo();
   // 소리 준비도 앱 표시를 막지 않는다.
   Sound.instance.init(music: storage.music, sfx: storage.sfx);
   runApp(FruitMergeApp(storage: storage));

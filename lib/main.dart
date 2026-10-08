@@ -10,6 +10,7 @@ import 'screens/map_screen.dart';
 import 'services/challenge.dart';
 import 'services/sound.dart';
 import 'services/storage.dart';
+import 'moament_splash.dart';
 
 /// 스크린샷 촬영용 언어 강제 (디버그 빌드에서만 동작).
 /// 예: flutter build apk --debug --dart-define=LOCALE=ja
@@ -66,6 +67,7 @@ class _FruitMergeAppState extends State<FruitMergeApp> {
       child: ListenableBuilder(
         listenable: _locale,
         builder: (context, _) => MaterialApp(
+          builder: (context, child) => MoamentSplash(child: child!),
           onGenerateTitle: (context) => S.of(context).appTitle,
           debugShowCheckedModeBanner: false,
           theme: ThemeData(colorSchemeSeed: seedColor, useMaterial3: true),

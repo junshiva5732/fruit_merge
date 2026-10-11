@@ -216,7 +216,7 @@ class BoardPainter extends CustomPainter {
     // 과일
     for (final f in world.fruits) {
       final s = fx.scaleFor(f);
-      drawPiece(canvas, f.piece, f.pos, f.r * s, hp: f.hp, time: time);
+      drawPiece(canvas, f.piece, f.pos, f.r * s, hp: f.hp, time: time, angle: f.angle);
       if (hammer) {
         canvas.drawCircle(
           f.pos,

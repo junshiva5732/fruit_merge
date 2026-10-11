@@ -30,7 +30,8 @@ const _stem = Color(0xFF6D4C41);
 const _ink = Color(0xFF3E2723);
 
 /// [c] 를 중심으로 반지름 [r] 인 [level] 과일을 그린다. [face] 가 false 면 얼굴 없이 (아주 작게 그릴 때).
-void drawFruit(Canvas canvas, int level, Offset c, double r, {bool face = true, double opacity = 1}) {
+/// [angle] 만큼 과일이 돌아간 모습으로 그린다 (무늬·꼭지·얼굴만 돌고, 입체감 그라데이션과 반짝이는 빛 방향 그대로).
+void drawFruit(Canvas canvas, int level, Offset c, double r, {bool face = true, double opacity = 1, double angle = 0}) {
   final s = fruitStyles[level];
   if (opacity < 1) {
     canvas.saveLayer(Rect.fromCircle(center: c, radius: r * 1.4), Paint()..color = Color.fromRGBO(0, 0, 0, opacity));
@@ -50,9 +51,19 @@ void drawFruit(Canvas canvas, int level, Offset c, double r, {bool face = true, 
       ),
   );
 
+  void rotated(void Function() draw) {
+    if (angle == 0) return draw();
+    canvas.save();
+    canvas.translate(c.dx, c.dy);
+    canvas.rotate(angle);
+    canvas.translate(-c.dx, -c.dy);
+    draw();
+    canvas.restore();
+  }
+
   canvas.save();
   canvas.clipPath(Path()..addOval(body));
-  _pattern(canvas, level, c, r, s);
+  rotated(() => _pattern(canvas, level, c, r, s));
   canvas.restore();
 
   // 테두리
@@ -65,7 +76,7 @@ void drawFruit(Canvas canvas, int level, Offset c, double r, {bool face = true, 
       ..color = s.dark.withValues(alpha: 0.85),
   );
 
-  _topper(canvas, level, c, r);
+  rotated(() => _topper(canvas, level, c, r));
 
   // 반짝이
   canvas.drawOval(
@@ -73,7 +84,7 @@ void drawFruit(Canvas canvas, int level, Offset c, double r, {bool face = true, 
     Paint()..color = const Color(0xB3FFFFFF),
   );
 
-  if (face) _face(canvas, c, r, level);
+  if (face) rotated(() => _face(canvas, c, r, level));
   if (opacity < 1) canvas.restore();
 }
 
@@ -291,13 +302,30 @@ const _rainbow = [
 const _rainbowStops = [0.0, 1 / 6, 2 / 6, 3 / 6, 4 / 6, 5 / 6, 1.0];
 
 /// 조각 번호로 그린다: 0~10 과일, 100 무지개, 101 폭탄, 102 돌. [hp] 는 돌의 남은 내구도(금 표시).
-void drawPiece(Canvas canvas, int piece, Offset c, double r, {bool face = true, double opacity = 1, int hp = 3, double time = 0}) {
+void drawPiece(
+  Canvas canvas,
+  int piece,
+  Offset c,
+  double r, {
+  bool face = true,
+  double opacity = 1,
+  int hp = 3,
+  double time = 0,
+  double angle = 0,
+}) {
   if (piece < 100) {
-    drawFruit(canvas, piece, c, r, face: face, opacity: opacity);
+    drawFruit(canvas, piece, c, r, face: face, opacity: opacity, angle: angle);
     return;
   }
   if (opacity < 1) {
     canvas.saveLayer(Rect.fromCircle(center: c, radius: r * 1.6), Paint()..color = Color.fromRGBO(0, 0, 0, opacity));
+  }
+  // 특수 과일은 통째로 돌린다.
+  canvas.save();
+  if (angle != 0) {
+    canvas.translate(c.dx, c.dy);
+    canvas.rotate(angle);
+    canvas.translate(-c.dx, -c.dy);
   }
   switch (piece) {
     case 100:
@@ -308,6 +336,7 @@ void drawPiece(Canvas canvas, int piece, Offset c, double r, {bool face = true, 
       _drawStone(canvas, c, r, hp);
   }
   if (face) _specialFace(canvas, piece, c, r);
+  canvas.restore();
   if (opacity < 1) canvas.restore();
 }
 

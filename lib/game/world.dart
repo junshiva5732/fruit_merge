@@ -66,6 +66,14 @@ class Fruit {
   Offset pos;
   Offset vel;
 
+  /// 회전 각도(라디안, 시계 방향 +)와 각속도. 닿은 면을 따라 미끄러지면 그 방향으로 구른다.
+  double angle = 0;
+  double spin = 0;
+
+  // 이번 서브스텝에 닿은 면들이 요구하는 "구름" 각속도의 합과 개수.
+  double _rollSum = 0;
+  int _rollN = 0;
+
   /// 떨어진 뒤 지난 시간(초). 막 떨어진 과일은 선 위에 있어도 게임 오버로 세지 않는다.
   double age = 0;
 
@@ -152,6 +160,12 @@ class World {
   static const _floorFriction = 0.998;
   static const _contactFriction = 0.01;
   static const _airDamping = 0.15;
+
+  /// 구름: 닿아 있을 때 각속도가 "미끄럼 없이 구르는" 값으로 따라가는 정도(서브스텝마다).
+  /// 1 이면 완전히 구르고, 작을수록 미끄러지면서 조금씩 돈다.
+  static const _rollGrip = 0.06;
+  static const _spinAirDamping = 0.4;
+  static const _maxSpin = 24.0;
 
   /// 합쳐질 때 주변 과일을 밀어내는 세기 (월드 단위 속도).
   static const bumpSpeed = 380.0;
@@ -325,8 +339,24 @@ class World {
     if (danger >= overAfter) over = true;
   }
 
+  /// 접촉면 방향 [n](중심 → 접점)과 상대 속도 [v] 에서, 미끄럼 없이 구를 때의 각속도.
+  /// 화면 좌표(y 아래)에서 시계 방향이 + : 바닥(n = 아래)에서 오른쪽으로 가면 +.
+  static double _rollRate(Offset v, Offset n, double r) => (v.dx * n.dy - v.dy * n.dx) / r;
+
   void _integrate(double h) {
     final damp = 1 - _airDamping * h;
+    final spinDamp = 1 - _spinAirDamping * h;
+    for (final f in fruits) {
+      if (f._rollN > 0) {
+        f.spin += (f._rollSum / f._rollN - f.spin) * _rollGrip;
+      } else {
+        f.spin *= spinDamp;
+      }
+      f.spin = f.spin.clamp(-_maxSpin, _maxSpin);
+      f.angle = (f.angle + f.spin * h) % (math.pi * 2);
+      f._rollSum = 0;
+      f._rollN = 0;
+    }
     List<Fruit>? landedBombs;
     for (final f in fruits) {
       var v = Offset(f.vel.dx * damp, (f.vel.dy + gravity * h) * damp);
@@ -335,13 +365,19 @@ class World {
       if (p.dx < r + wall) {
         p = Offset(r + wall, p.dy);
         if (v.dx < 0) v = Offset(-v.dx * 0.2, v.dy);
+        f._rollSum += _rollRate(v, const Offset(-1, 0), r);
+        f._rollN++;
       } else if (p.dx > width - r - wall) {
         p = Offset(width - r - wall, p.dy);
         if (v.dx > 0) v = Offset(-v.dx * 0.2, v.dy);
+        f._rollSum += _rollRate(v, const Offset(1, 0), r);
+        f._rollN++;
       }
       if (p.dy > height - r - wall) {
         p = Offset(p.dx, height - r - wall);
         if (v.dy > 0) v = Offset(v.dx * _floorFriction, -v.dy * 0.1);
+        f._rollSum += _rollRate(v, const Offset(0, 1), r);
+        f._rollN++;
         if (f.kind == FruitKind.bomb) (landedBombs ??= []).add(f);
       }
       f
@@ -415,7 +451,12 @@ class World {
           } else {
             final lv = keep.level + 1;
             final vel = (a.vel + b.vel) * 0.25;
-            born.add(Fruit(_nextId++, lv, at, vel)..age = math.max(a.age, b.age));
+            born.add(
+              Fruit(_nextId++, lv, at, vel)
+                ..age = math.max(a.age, b.age)
+                ..angle = keep.angle
+                ..spin = (a.spin + b.spin) * 0.5,
+            );
             final m = _award(mergePoints[lv]);
             biggest = math.max(biggest, lv);
             events.add(WorldEvent(EventType.merge, at, piece: lv, points: mergePoints[lv] * m, combo: m));
@@ -431,6 +472,12 @@ class World {
         a.pos -= nrm * (overlap * ima / sum);
         b.pos += nrm * (overlap * imb / sum);
         final rel = (b.vel - a.vel);
+        // 서로 스치며 미끄러지면 각자 상대 면을 따라 구른다 (a 에서 본 접점 방향 = nrm).
+        final roll = -rel;
+        a._rollSum += _rollRate(roll, nrm, a.r);
+        a._rollN++;
+        b._rollSum += _rollRate(roll, nrm, b.r);
+        b._rollN++;
         final vn = rel.dx * nrm.dx + rel.dy * nrm.dy;
         if (vn < 0) {
           final jn = -(1 + _restitution) * vn / sum;
